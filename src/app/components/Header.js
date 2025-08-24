@@ -1,4 +1,4 @@
-export default function Header() {
+export default function Header({ predictions = 0 }) {
   return (
     <header className="bg-[#2d2d2d] border-b border-gray-700">
       <div className="max-w-4xl mx-auto px-4 py-4">
@@ -14,9 +14,9 @@ export default function Header() {
               This week
             </div>
             <div className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-              0
+              {predictions}
             </div>
-            <button className="text-gray-400 hover:text-white">
+            <button className="text-gray-400 hover:text-white transition-colors">
               How to play
             </button>
           </div>

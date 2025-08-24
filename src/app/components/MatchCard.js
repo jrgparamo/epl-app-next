@@ -1,12 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-
-export default function MatchCard({ match }) {
-  const [selectedPrediction, setSelectedPrediction] = useState(null);
-
-  const handlePrediction = (prediction) => {
-    setSelectedPrediction(prediction);
+export default function MatchCard({ match, prediction, onPrediction }) {
+  const handlePrediction = (predictionType) => {
+    onPrediction(match.id, predictionType);
   };
 
   if (match.status === 'finished') {
@@ -56,7 +52,7 @@ export default function MatchCard({ match }) {
           <button
             onClick={() => handlePrediction('home')}
             className={`w-full mt-3 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              selectedPrediction === 'home'
+              prediction === 'home'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
@@ -81,7 +77,7 @@ export default function MatchCard({ match }) {
           <button
             onClick={() => handlePrediction('draw')}
             className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              selectedPrediction === 'draw'
+              prediction === 'draw'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
@@ -100,7 +96,7 @@ export default function MatchCard({ match }) {
           <button
             onClick={() => handlePrediction('away')}
             className={`w-full mt-3 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              selectedPrediction === 'away'
+              prediction === 'away'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
@@ -120,12 +116,12 @@ export default function MatchCard({ match }) {
         </div>
       </div>
       
-      {selectedPrediction && (
+      {prediction && (
         <div className="mt-4 p-3 bg-green-600 bg-opacity-20 border border-green-600 rounded-lg">
           <div className="text-center text-sm text-green-400">
             ✓ Prediction saved: {
-              selectedPrediction === 'home' ? match.homeTeam.name :
-              selectedPrediction === 'away' ? match.awayTeam.name : 'Draw'
+              prediction === 'home' ? match.homeTeam.name :
+              prediction === 'away' ? match.awayTeam.name : 'Draw'
             } to win
           </div>
         </div>
