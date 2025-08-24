@@ -1,0 +1,47 @@
+{
+  // Remove trailing whitespace on save
+  "files.trimTrailingWhitespace": true,
+
+  // Remove final newlines on save
+  "files.trimFinalNewlines": true,
+
+  // Insert final newline at end of file on save
+  "files.insertFinalNewline": true,
+
+  // Auto-format code on save
+  "editor.formatOnSave": true,
+
+  // Auto-fix ESLint issues on save
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // Show whitespace characters (optional - helps you see what will be removed)
+  "editor.renderWhitespace": "boundary",
+
+  // Specific settings for JavaScript/TypeScript files
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  }
+}
