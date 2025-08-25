@@ -1,4 +1,5 @@
 import "./globals.css";
+import AuthProvider from "./components/AuthProvider";
 
 export const metadata = {
   title: "Predict FotMob Clone - Football Predictions",
@@ -9,7 +10,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="antialiased">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

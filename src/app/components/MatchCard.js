@@ -1,10 +1,47 @@
 "use client";
 
 import Image from "next/image";
+import { useAuth } from "../hooks/useAuth";
+import { signIn } from "next-auth/react";
 
 export default function MatchCard({ match, prediction, onPrediction }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
   const handlePrediction = (predictionType) => {
+    if (!isAuthenticated) return;
     onPrediction(match.id, predictionType);
+  };
+
+  const renderPredictionButton = (
+    type,
+    text,
+    disabled = false,
+    extraClasses = "mt-3"
+  ) => {
+    if (!isAuthenticated) {
+      return (
+        <button
+          onClick={() => signIn("google")}
+          className={`w-full ${extraClasses} py-2 px-3 rounded-lg text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white`}
+        >
+          Sign in to predict
+        </button>
+      );
+    }
+
+    return (
+      <button
+        onClick={() => handlePrediction(type)}
+        disabled={disabled || isLoading}
+        className={`w-full ${extraClasses} py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+          prediction === type
+            ? "bg-green-600 text-white"
+            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+        } ${disabled || isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+      >
+        {text}
+      </button>
+    );
   };
 
   if (match.status === "finished") {
@@ -17,13 +54,13 @@ export default function MatchCard({ match, prediction, onPrediction }) {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className=" relative flex-shrink-0">
+            <div className="w-8 relative flex-shrink-0">
               <Image
                 src={match.homeTeam.logo}
                 alt={`${match.homeTeam.name} logo`}
-                width={32}
-                height={32}
-                className=""
+                width={100}
+                height={100}
+                className="w-[100px] h-auto"
               />
             </div>
             <span className="text-white">{match.homeTeam.name}</span>
@@ -37,13 +74,13 @@ export default function MatchCard({ match, prediction, onPrediction }) {
 
           <div className="flex items-center space-x-3">
             <span className="text-white">{match.awayTeam.name}</span>
-            <div className=" relative flex-shrink-0">
+            <div className="w-8 relative flex-shrink-0">
               <Image
                 src={match.awayTeam.logo}
                 alt={`${match.awayTeam.name} logo`}
-                width={32}
-                height={32}
-                className=""
+                width={100}
+                height={100}
+                className="w-[100px] h-auto"
               />
             </div>
           </div>
@@ -63,13 +100,13 @@ export default function MatchCard({ match, prediction, onPrediction }) {
         {/* Home Team */}
         <div className="text-center">
           <div className="flex flex-col items-center space-y-2">
-            <div className="relative">
+            <div className="w-8 relative">
               <Image
                 src={match.homeTeam.logo}
                 alt={`${match.homeTeam.name} logo`}
                 width={64}
                 height={64}
-                className=""
+                className="w-[100px] h-auto"
               />
             </div>
             <span className="text-sm text-white font-medium">
@@ -77,16 +114,7 @@ export default function MatchCard({ match, prediction, onPrediction }) {
             </span>
           </div>
 
-          <button
-            onClick={() => handlePrediction("home")}
-            className={`w-full mt-3 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              prediction === "home"
-                ? "bg-green-600 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-            }`}
-          >
-            W {match.homeProbability}%
-          </button>
+          {renderPredictionButton("home", `W ${match.homeProbability}%`)}
 
           <div className="mt-2">
             <div className="text-xs text-gray-400 mb-1">Win probability</div>
@@ -102,28 +130,24 @@ export default function MatchCard({ match, prediction, onPrediction }) {
         {/* VS Section */}
         <div className="text-center">
           <div className="text-gray-400 text-sm font-medium mb-4">VS</div>
-          <button
-            onClick={() => handlePrediction("draw")}
-            className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              prediction === "draw"
-                ? "bg-green-600 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-            }`}
-          >
-            Draw {100 - match.homeProbability - match.awayProbability}%
-          </button>
+          {renderPredictionButton(
+            "draw",
+            `Draw ${100 - match.homeProbability - match.awayProbability}%`,
+            false,
+            ""
+          )}
         </div>
 
         {/* Away Team */}
         <div className="text-center">
           <div className="flex flex-col items-center space-y-2">
-            <div className="relative">
+            <div className="w-8 relative">
               <Image
                 src={match.awayTeam.logo}
                 alt={`${match.awayTeam.name} logo`}
                 width={64}
                 height={64}
-                className=""
+                className="w-[100px] h-auto"
               />
             </div>
             <span className="text-sm text-white font-medium">
@@ -131,16 +155,7 @@ export default function MatchCard({ match, prediction, onPrediction }) {
             </span>
           </div>
 
-          <button
-            onClick={() => handlePrediction("away")}
-            className={`w-full mt-3 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              prediction === "away"
-                ? "bg-green-600 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-            }`}
-          >
-            W {match.awayProbability}%
-          </button>
+          {renderPredictionButton("away", `W ${match.awayProbability}%`)}
 
           <div className="mt-2">
             <div className="text-xs text-gray-400 mb-1">Win probability</div>
@@ -154,7 +169,7 @@ export default function MatchCard({ match, prediction, onPrediction }) {
         </div>
       </div>
 
-      {prediction && (
+      {prediction && isAuthenticated && (
         <div className="mt-4 p-3 bg-green-600 bg-opacity-20 border border-green-600 rounded-lg">
           <div className="text-center text-sm text-green-400">
             ✓ Prediction saved:{" "}
