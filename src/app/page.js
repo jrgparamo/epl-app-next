@@ -4,6 +4,7 @@ import { useState } from "react";
 import Header from "./components/Header";
 import MatchList from "./components/MatchList";
 import WeekSelector from "./components/WeekSelector";
+import { useAuth } from "./hooks/useAuth";
 
 // Comprehensive Premier League match data by weeks/rounds
 const matchesByWeek = {
@@ -539,6 +540,7 @@ const matchesByWeek = {
 };
 
 export default function Home() {
+  const { isAuthenticated } = useAuth();
   const [currentWeek, setCurrentWeek] = useState(3);
   const [selectedLeague, setSelectedLeague] = useState("premier-league");
   const [predictions, setPredictions] = useState({});
@@ -566,10 +568,12 @@ export default function Home() {
           return match.league === leagueMap[selectedLeague];
         });
 
-  // Count predictions made for current week
-  const currentWeekPredictions = currentMatches.filter(
-    (match) => match.status === "upcoming" && predictions[match.id]
-  ).length;
+  // Count predictions made for current week (only for authenticated users)
+  const currentWeekPredictions = isAuthenticated
+    ? currentMatches.filter(
+        (match) => match.status === "upcoming" && predictions[match.id]
+      ).length
+    : 0;
 
   // Get week status
   const getWeekStatus = (week) => {
@@ -660,30 +664,6 @@ export default function Home() {
         )}
 
         <div className="mt-8 text-center">
-          <div className="bg-[#2d2d2d] rounded-lg p-6 mb-4">
-            <h3 className="text-lg font-semibold mb-1">How to play</h3>
-            <h4 className="font-semibold text-white">
-              Predict the upcoming matches
-            </h4>
-            <p className="text-white">
-              You can edit your predictions until the match kicks off.
-            </p>
-          </div>
-          <div className="bg-[#2d2d2d] rounded-lg p-6 mb-4">
-            <h3 className="text-lg font-semibold mb-1">Scoring</h3>
-            <div className="flex flex-col gap-3">
-              <h3 className="font-medium text-white">Correct outcome</h3>
-              <p className="text-sm font-medium text-quickSilver">
-                Winner or draw
-              </p>
-
-              <div className="relative flex items-center justify-center">
-                <p className="justify-center gradient-frost-text text-center text-xs font-semibold">
-                  1 Point
-                </p>
-              </div>
-            </div>
-          </div>
           <div className="text-xs text-gray-500">
             This app is the essential football app. © Copyright 2025 Company
             Name

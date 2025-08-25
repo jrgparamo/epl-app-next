@@ -1,30 +1,34 @@
-export default function WeekSelector({ currentWeek, onWeekChange, getWeekStatus }) {
+export default function WeekSelector({
+  currentWeek,
+  onWeekChange,
+  getWeekStatus,
+}) {
   const weeks = [1, 2, 3, 4, 5];
 
   const getWeekButtonStyle = (week) => {
     const status = getWeekStatus(week);
     const isSelected = currentWeek === week;
-    
+
     if (isSelected) {
-      return 'bg-green-600 text-white shadow-lg';
+      return "bg-green-600 text-white shadow-lg";
     }
-    
-    if (status === 'completed') {
-      return 'bg-gray-600 text-gray-300 hover:bg-gray-500';
+
+    if (status === "completed") {
+      return "bg-gray-600 text-gray-300 hover:bg-gray-500";
     }
-    
-    if (status === 'current') {
-      return 'bg-blue-600 text-white hover:bg-blue-500';
+
+    if (status === "current") {
+      return "bg-blue-600 text-white hover:bg-blue-500";
     }
-    
+
     // upcoming
-    return 'bg-gray-700 text-gray-300 hover:bg-gray-600';
+    return "bg-gray-700 text-gray-300 hover:bg-gray-600";
   };
 
   const getWeekLabel = (week) => {
     const status = getWeekStatus(week);
-    if (status === 'completed') return `Week ${week} ✓`;
-    if (status === 'current') return `Week ${week} ●`;
+    if (status === "completed") return `Week ${week} ✓`;
+    if (status === "current") return `Week ${week} ●`;
     return `Week ${week}`;
   };
 
@@ -35,7 +39,9 @@ export default function WeekSelector({ currentWeek, onWeekChange, getWeekStatus 
           <button
             key={week}
             onClick={() => onWeekChange(week)}
-            className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${getWeekButtonStyle(week)}`}
+            className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${getWeekButtonStyle(
+              week
+            )}`}
           >
             {getWeekLabel(week)}
           </button>
