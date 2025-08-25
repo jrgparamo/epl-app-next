@@ -1,31 +1,104 @@
-# FotMob Predict Clone
+# EPL Prediction App
 
-A football prediction app built with Next.js that replicates the functionality and design of FotMob's prediction platform. Users can make predictions on football matches from various leagues and compete with friends.
+A modern Next.js application for predicting English Premier League match results, built with real-time data from the Football Data API.
 
 ## Features
 
-- **Match Predictions**: Make predictions on upcoming football matches
-- **League Filtering**: Filter matches by Premier League, LaLiga, Bundesliga, or view all
-- **Weekly Rounds**: Navigate through different prediction weeks
-- **Win Probabilities**: View AI-powered win probabilities for each team
-- **Dark Theme**: Modern dark interface matching FotMob's design
-- **Responsive Design**: Works on all device sizes
+- 🏆 **Real Premier League Data**: Live fixtures, results, and standings from Football Data API
+- 🎯 **Match Predictions**: Make predictions on upcoming matches
+- 🔐 **User Authentication**: Secure login with Google OAuth
+- 📱 **Responsive Design**: Works perfectly on desktop and mobile
+- ⚡ **Real-time Updates**: Live match status and score updates
+- 🎨 **Modern UI**: Dark theme with Tailwind CSS
+- 📊 **Matchday Navigation**: Browse all 38 Premier League matchdays
 
-## Getting Started
+## API Integration
 
-First, run the development server:
+This app uses the **Football-Data.org API** for Premier League data:
+
+### Why Football-Data.org?
+
+- ✅ **Free Tier Available**: 10 requests per minute
+- ✅ **Premier League Included**: Free access to EPL fixtures, results, standings
+- ✅ **Reliable & Updated**: Official data source
+- ✅ **Developer Friendly**: Clean REST API with good documentation
+
+### Getting Your API Key
+
+1. Visit [football-data.org](https://www.football-data.org/client/register)
+2. Create a free account
+3. Get your API key from the dashboard
+4. Add it to your environment variables
+
+## Setup Instructions
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd epl-app-next
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Environment Configuration
+
+Create a `.env.local` file in the root directory:
+
+```bash
+# Required: Football Data API
+NEXT_PUBLIC_FOOTBALL_DATA_API_KEY=your_football_data_api_key
+
+# Required: NextAuth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret
+
+# Optional: Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+```
+
+### 4. Get Your Football Data API Key
+
+- Go to [football-data.org/client/register](https://www.football-data.org/client/register)
+- Sign up for a free account
+- Copy your API key from the dashboard
+- Add it to your `.env.local` file
+
+### 5. Start the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000](http://localhost:3000) to see the app.
+
+## API Features
+
+### Available Data
+
+- **Fixtures**: All Premier League matches with dates and times
+- **Results**: Live scores and final results
+- **Standings**: Current league table
+- **Teams**: Team information, logos, and statistics
+- **Matchdays**: All 38 gameweeks of the season
+
+### Rate Limits
+
+- **Free Tier**: 10 requests per minute
+- **Sufficient for**: Most personal projects and small applications
+- **Upgrade Available**: Paid plans for higher limits
+
+### Endpoints Used
+
+- `GET /competitions/2021/matches` - Premier League fixtures
+- `GET /competitions/2021/matches?matchday=X` - Specific matchday
+- `GET /competitions/2021/standings` - League table
+- `GET /competitions/2021` - Competition info
 
 ## Project Structure
 
@@ -33,64 +106,86 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 src/
 ├── app/
 │   ├── components/
-│   │   ├── Header.js          # Top navigation bar
-│   │   ├── WeekSelector.js    # Week navigation component
-│   │   ├── MatchList.js       # Groups and displays matches
-│   │   └── MatchCard.js       # Individual match prediction card
-│   ├── globals.css            # Global styles and theme
-│   ├── layout.js              # Root layout component
-│   └── page.js                # Main page component
+│   │   ├── Header.js          # Navigation and user info
+│   │   ├── MatchCard.js       # Individual match display
+│   │   ├── MatchList.js       # List of matches grouped by date
+│   │   ├── WeekSelector.js    # Matchday navigation
+│   │   └── AuthButton.js      # Authentication component
+│   ├── api/
+│   │   └── auth/              # NextAuth configuration
+│   └── page.js                # Main application page
+├── lib/
+│   ├── api.js                 # Football Data API integration
+│   └── utils.js               # Helper functions and team mappings
+└── hooks/
+    └── useAuth.js             # Authentication hook
 ```
+
+## Key Features Explained
+
+### Real-Time Match Data
+
+- Fetches live Premier League fixtures from Football Data API
+- Displays match status: scheduled, live, finished
+- Shows real scores and match information
+- Updates automatically as matches progress
+
+### Prediction System
+
+- Users can predict match outcomes (Home, Draw, Away)
+- Predictions are saved locally per user
+- Predictions lock when matches start
+- Visual feedback for saved predictions
+
+### Matchday Navigation
+
+- Browse all 38 Premier League matchdays
+- See current, completed, and upcoming gameweeks
+- Smart navigation with context-aware buttons
+- Current matchday automatically highlighted
+
+### Authentication
+
+- Google OAuth integration
+- Persistent user sessions
+- User-specific prediction storage
+- Secure authentication flow
 
 ## Technologies Used
 
-- **Next.js 15** - React framework with App Router
-- **React 18** - UI library with hooks
-- **Tailwind CSS** - Utility-first CSS framework
-- **JavaScript** - Modern ES6+ features
+- **Next.js 14**: React framework with App Router
+- **React 18**: Component library
+- **Tailwind CSS**: Utility-first CSS framework
+- **NextAuth.js**: Authentication library
+- **Football Data API**: Premier League data source
 
-## Features Details
+## Browser Support
 
-### Match Predictions
-- Click on team win buttons or draw to make predictions
-- Visual feedback with green highlighting for selected predictions
-- Win probability bars for each team
+- ✅ Chrome (latest)
+- ✅ Firefox (latest)
+- ✅ Safari (latest)
+- ✅ Edge (latest)
 
-### League Filtering
-- Toggle between all leagues or specific competitions
-- Supports Premier League, LaLiga, and Bundesliga filtering
+## Contributing
 
-### Match States
-- **Upcoming**: Shows prediction interface with probabilities
-- **Finished**: Displays final scores with team names
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Customization
+## License
 
-The app uses CSS custom properties for easy theming:
-- `--background`: Main background color
-- `--card-background`: Match card background
-- `--accent-green`: Primary accent color
-- `--text-muted`: Secondary text color
+This project is licensed under the MIT License.
 
-## Future Enhancements
+## Support
 
-- User authentication and profiles
-- Leaderboards and scoring system
-- Real match data integration
-- Push notifications for match results
-- Social sharing features
+For support or questions:
 
-## Learn More
+- Check the [Football Data API documentation](https://www.football-data.org/documentation/quickstart)
+- Review the issue tracker
+- Contact the development team
 
-To learn more about the technologies used:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Note**: This app requires a free Football Data API key to function. The free tier provides access to Premier League data with reasonable rate limits for personal use.
