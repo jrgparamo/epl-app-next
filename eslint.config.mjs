@@ -12,6 +12,19 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals"),
   {
+    rules: {
+      "no-unused-vars": [
+        "warn",
+        {
+          vars: "all",
+          args: "after-used",
+          ignoreRestSiblings: false,
+          argsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+  {
     ignores: [
       "node_modules/**",
       ".next/**",
