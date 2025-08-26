@@ -69,7 +69,7 @@ export default function MatchCard({ match, prediction, onPrediction }) {
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col items-center">
             <div className="w-10 h-10 relative flex items-center justify-center flex-shrink-0">
               <Image
                 src={getTeamLogo(match.homeTeam.name)}
@@ -94,10 +94,7 @@ export default function MatchCard({ match, prediction, onPrediction }) {
             <span className="text-white">{score.away}</span>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <span className="text-white">
-              {match.awayTeam.shortName || match.awayTeam.name}
-            </span>
+          <div className="flex flex-col items-center  ">
             <div className="w-10 h-10 relative flex items-center justify-center flex-shrink-0">
               <Image
                 src={getTeamLogo(match.awayTeam.name)}
@@ -111,6 +108,9 @@ export default function MatchCard({ match, prediction, onPrediction }) {
                 }}
               />
             </div>
+            <span className="text-white text-center">
+              {match.awayTeam.shortName || match.awayTeam.name}
+            </span>
           </div>
         </div>
 

@@ -4,6 +4,9 @@ const API_BASE_URL = "https://api.football-data.org/v4";
 const API_KEY = process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY;
 const PREMIER_LEAGUE_ID = 2021;
 
+// Cache for 1 hour (3600 seconds) - matchday changes less frequently
+// export const revalidate = 3600;
+
 export async function GET() {
   if (!API_KEY) {
     return NextResponse.json(
@@ -18,6 +21,11 @@ export async function GET() {
       {
         headers: {
           "X-Auth-Token": API_KEY,
+        },
+        // Cache the response for 1 hour with tags
+        next: {
+          revalidate: 3600,
+          tags: ["matchday", "season-info"],
         },
       }
     );

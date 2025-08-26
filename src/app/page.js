@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Header from "./components/Header";
 import MatchList from "./components/MatchList";
 import WeekSelector from "./components/WeekSelector";
+import { CacheIndicator } from "./components/CacheDebug";
 import { useAuth } from "./hooks/useAuth";
 import { getFixturesByMatchday, getCurrentMatchday } from "../lib/api";
 
@@ -15,6 +16,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [predictions, setPredictions] = useState({});
+  const [correctPredictions, setCorrectPredictions] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Load current matchday and initial matches
@@ -62,7 +64,7 @@ export default function Home() {
     loadMatches();
   }, [currentWeek, initialLoadComplete]);
 
-  // Load saved predictions from localStorage
+  // Load saved predictions and correct prediction count from localStorage
   useEffect(() => {
     if (user) {
       const savedPredictions = localStorage.getItem(
@@ -70,6 +72,12 @@ export default function Home() {
       );
       if (savedPredictions) {
         setPredictions(JSON.parse(savedPredictions));
+      }
+      const savedCorrectCount = localStorage.getItem(
+        `correct_predictions_${user.email}`
+      );
+      if (savedCorrectCount) {
+        setCorrectPredictions(parseInt(savedCorrectCount, 10));
       }
     }
   }, [user]);
@@ -93,6 +101,50 @@ export default function Home() {
       JSON.stringify(newPredictions)
     );
   };
+
+  // Check if a prediction is correct
+  const checkPredictionCorrect = (match, userPrediction) => {
+    if (!match.score || !match.score.fullTime) return false;
+
+    const { fullTime } = match.score;
+    const homeScore = fullTime.home;
+    const awayScore = fullTime.away;
+
+    // If it's a draw
+    if (homeScore === awayScore) {
+      return userPrediction === "draw";
+    }
+
+    // Home win
+    if (homeScore > awayScore) {
+      return userPrediction === "home";
+    }
+
+    // Away win
+    return userPrediction === "away";
+  };
+
+  // Update correct predictions count when matches change or predictions are updated
+  useEffect(() => {
+    if (!user || !matches.length) return;
+
+    let newCorrectCount = 0;
+
+    matches.forEach((match) => {
+      // Only check finished matches
+      if (match.status === "FINISHED" && predictions[match.id]) {
+        if (checkPredictionCorrect(match, predictions[match.id])) {
+          newCorrectCount++;
+        }
+      }
+    });
+
+    setCorrectPredictions(newCorrectCount);
+    localStorage.setItem(
+      `correct_predictions_${user.email}`,
+      newCorrectCount.toString()
+    );
+  }, [matches, predictions, user]);
 
   if (loading && matches.length === 0) {
     return (
@@ -174,6 +226,16 @@ export default function Home() {
               {!loading && matches.length > 0 && `${matches.length} matches`}
             </div>
           </div>
+
+          {/* Correct predictions counter */}
+          {user && (
+            <div className="mt-2 p-3 bg-green-900 bg-opacity-30 border border-green-700 rounded-lg">
+              <div className="text-center text-green-400">
+                Correct Predictions:{" "}
+                <span className="font-bold">{correctPredictions}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {loading && (
@@ -207,6 +269,9 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* Cache indicator for development and debugging */}
+      <CacheIndicator />
     </div>
   );
 }
