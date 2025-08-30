@@ -1,7 +1,12 @@
 import MatchCard from "./MatchCard";
 import { formatMatchDate } from "../../lib/utils";
 
-export default function MatchList({ matches, predictions, onPrediction }) {
+export default function MatchList({
+  matches,
+  scorePredictions,
+  onPrediction,
+  onScorePrediction,
+}) {
   // Group matches by date
   const groupedMatches = matches.reduce((groups, match) => {
     // Use the formatted date from the API data
@@ -36,8 +41,9 @@ export default function MatchList({ matches, predictions, onPrediction }) {
                 <MatchCard
                   key={match.id}
                   match={match}
-                  prediction={predictions[match.id]}
+                  scorePrediction={scorePredictions[match.id]}
                   onPrediction={onPrediction}
+                  onScorePrediction={onScorePrediction}
                 />
               ))}
             </div>

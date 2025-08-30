@@ -19,7 +19,7 @@ export default function HowToPlayModal({ isOpen, onClose }) {
 
           <div className="space-y-6">
             <div className="bg-[#2d2d2d] rounded-lg p-6">
-              <h4 className="font-semibold text-white mb-2">
+              <h4 className="font-semibold text-white text-center mb-2">
                 Predict the upcoming matches
               </h4>
               <p className="text-white">
@@ -28,18 +28,30 @@ export default function HowToPlayModal({ isOpen, onClose }) {
             </div>
 
             <div className="bg-[#2d2d2d] rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-3 text-white">Scoring</h3>
-              <div className="flex flex-col gap-3">
-                <h3 className="font-medium text-white">Correct outcome</h3>
-                <p className="text-sm font-medium text-gray-400">
-                  Winner or draw
-                </p>
-
-                <div className="relative flex items-center justify-center">
-                  <p className="justify-center text-green-400 text-center text-xs font-semibold">
-                    1 Point
+              <h3 className="text-lg font-semibold mb-3 text-white text-center">
+                Scoring
+              </h3>
+              <div className="relative flex items-center justify-between mb-6">
+                <div className="flex flex-col gap-3">
+                  <h4 className="font-medium text-white">Correct outcome</h4>
+                  <p className="text-sm font-medium text-gray-400">
+                    Winner or draw
                   </p>
                 </div>
+                <p className="justify-center text-green-400 text-center text-xs font-semibold">
+                  1 Point
+                </p>
+              </div>
+              <div className="relative flex items-center justify-between ">
+                <div className="flex flex-col gap-3">
+                  <h4 className="font-medium text-white">Exact Score</h4>
+                  <p className="text-sm font-medium text-gray-400">
+                    Winner or draw with exact score
+                  </p>
+                </div>
+                <p className="justify-center text-green-400 text-center text-xs font-semibold">
+                  3 Points
+                </p>
               </div>
             </div>
           </div>

@@ -16,6 +16,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [predictions, setPredictions] = useState({});
+  const [scorePredictions, setScorePredictions] = useState({});
   const [correctPredictions, setCorrectPredictions] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
@@ -73,6 +74,14 @@ export default function Home() {
       if (savedPredictions) {
         setPredictions(JSON.parse(savedPredictions));
       }
+
+      const savedScorePredictions = localStorage.getItem(
+        `score_predictions_${user.email}`
+      );
+      if (savedScorePredictions) {
+        setScorePredictions(JSON.parse(savedScorePredictions));
+      }
+
       const savedCorrectCount = localStorage.getItem(
         `correct_predictions_${user.email}`
       );
@@ -102,6 +111,21 @@ export default function Home() {
     );
   };
 
+  const handleScorePrediction = (matchId, homeScore, awayScore) => {
+    if (!user) return;
+
+    const newScorePredictions = {
+      ...scorePredictions,
+      [matchId]: { home: homeScore, away: awayScore },
+    };
+
+    setScorePredictions(newScorePredictions);
+    localStorage.setItem(
+      `score_predictions_${user.email}`,
+      JSON.stringify(newScorePredictions)
+    );
+  };
+
   // Check if a prediction is correct
   const checkPredictionCorrect = (match, userPrediction) => {
     if (!match.score || !match.score.fullTime) return false;
@@ -124,6 +148,19 @@ export default function Home() {
     return userPrediction === "away";
   };
 
+  // Check if a score prediction is correct
+  const checkScorePredictionCorrect = (match, scorePrediction) => {
+    if (!match.score || !match.score.fullTime || !scorePrediction) return false;
+    if (scorePrediction.home === null || scorePrediction.away === null)
+      return false;
+
+    const { fullTime } = match.score;
+    return (
+      fullTime.home === scorePrediction.home &&
+      fullTime.away === scorePrediction.away
+    );
+  };
+
   // Update correct predictions count when matches change or predictions are updated
   useEffect(() => {
     if (!user || !matches.length) return;
@@ -132,9 +169,29 @@ export default function Home() {
 
     matches.forEach((match) => {
       // Only check finished matches
-      if (match.status === "FINISHED" && predictions[match.id]) {
-        if (checkPredictionCorrect(match, predictions[match.id])) {
-          newCorrectCount++;
+      if (match.status === "FINISHED" && scorePredictions[match.id]) {
+        const scorePrediction = scorePredictions[match.id];
+
+        if (scorePrediction.home !== null && scorePrediction.away !== null) {
+          // Derive the result prediction from score prediction
+          let derivedPrediction;
+          if (scorePrediction.home > scorePrediction.away) {
+            derivedPrediction = "home";
+          } else if (scorePrediction.away > scorePrediction.home) {
+            derivedPrediction = "away";
+          } else {
+            derivedPrediction = "draw";
+          }
+
+          // Check result prediction (1 point)
+          if (checkPredictionCorrect(match, derivedPrediction)) {
+            newCorrectCount++;
+          }
+
+          // Check exact score prediction (additional 2 points)
+          if (checkScorePredictionCorrect(match, scorePrediction)) {
+            newCorrectCount += 2;
+          }
         }
       }
     });
@@ -144,7 +201,7 @@ export default function Home() {
       `correct_predictions_${user.email}`,
       newCorrectCount.toString()
     );
-  }, [matches, predictions, user]);
+  }, [matches, scorePredictions, user]);
 
   if (loading && matches.length === 0) {
     return (
@@ -234,6 +291,9 @@ export default function Home() {
                 Correct Predictions:{" "}
                 <span className="font-bold">{correctPredictions}</span>
               </div>
+              <div className="text-xs text-green-300 text-center mt-1">
+                1 point for correct result or 3 points for exact score
+              </div>
             </div>
           )}
         </div>
@@ -247,8 +307,9 @@ export default function Home() {
         {!loading && matches.length > 0 && (
           <MatchList
             matches={matches}
-            predictions={predictions}
+            scorePredictions={scorePredictions}
             onPrediction={handlePrediction}
+            onScorePrediction={handleScorePrediction}
           />
         )}
 
