@@ -6,151 +6,329 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  getCacheStats,
-  clearCache,
-  clearCurrentMatchdayCache,
-} from "../../lib/api";
 
-export default function CacheDebug({ show = false }) {
-  const [stats, setStats] = useState(null);
-  const [isVisible, setIsVisible] = useState(
-    show || process.env.NODE_ENV === "development"
-  );
+export default function CacheDebug({ show = true }) {
+  const [cacheStats, setCacheStats] = useState({
+    cacheSize: 0,
+    entries: [],
+    pendingRequests: 0,
+  });
+  const [showDetails, setShowDetails] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    cacheHitRate: 0,
+    averageResponseTime: 0,
+    apiCallsPerMinute: 0,
+    totalRequests: 0,
+    cacheHits: 0,
+    cacheMisses: 0,
+    lastApiCall: null,
+    alerts: [],
+  });
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (!show) return;
 
-    const updateStats = () => {
-      setStats(getCacheStats());
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        const startTime = Date.now();
+        const response = await fetch("/api/cache");
+        const responseTime = Date.now() - startTime;
+
+        if (response.ok) {
+          const stats = await response.json();
+          setCacheStats(stats);
+
+          // Calculate performance metrics inline
+          setPerformanceMetrics((prevMetrics) => {
+            const currentTime = Date.now();
+            const totalRequests = prevMetrics.totalRequests + 1;
+            const cacheHits =
+              stats.cacheSize > 0
+                ? prevMetrics.cacheHits + 1
+                : prevMetrics.cacheHits;
+            const cacheMisses = totalRequests - cacheHits;
+            const cacheHitRate =
+              totalRequests > 0 ? (cacheHits / totalRequests) * 100 : 0;
+
+            // Calculate API calls per minute
+            const timeSinceStart =
+              currentTime - (prevMetrics.lastApiCall || currentTime);
+            const minutesSinceStart = Math.max(timeSinceStart / 60000, 1);
+            const apiCallsPerMinute = Math.round(
+              cacheMisses / minutesSinceStart
+            );
+
+            // Calculate alerts
+            const alerts = [];
+            if (apiCallsPerMinute > 8) {
+              alerts.push({
+                type: "warning",
+                message: `High API usage: ${apiCallsPerMinute} calls/minute`,
+              });
+            }
+            if (responseTime > 500) {
+              alerts.push({
+                type: "error",
+                message: `Slow response: ${responseTime}ms`,
+              });
+            }
+            if (cacheHitRate < 95 && totalRequests > 10) {
+              alerts.push({
+                type: "warning",
+                message: `Low cache hit rate: ${cacheHitRate.toFixed(1)}%`,
+              });
+            }
+
+            return {
+              cacheHitRate,
+              averageResponseTime:
+                (prevMetrics.averageResponseTime + responseTime) / 2,
+              apiCallsPerMinute,
+              totalRequests,
+              cacheHits,
+              cacheMisses,
+              lastApiCall: currentTime,
+              alerts,
+            };
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch cache stats:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    updateStats();
-    const interval = setInterval(updateStats, 5000); // Update every 5 seconds
-
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000); // Update every 5 seconds
     return () => clearInterval(interval);
-  }, [isVisible]);
+  }, [show]); // Only depend on 'show' prop
 
-  if (!isVisible || !stats) return null;
-
-  const formatTimestamp = (timestamp) => {
-    if (!timestamp) return "N/A";
-    return new Date(timestamp).toLocaleTimeString();
+  const clearCache = async () => {
+    try {
+      setIsLoading(true);
+      await fetch("/api/cache", { method: "DELETE" });
+      setCacheStats({ cacheSize: 0, entries: [], pendingRequests: 0 });
+    } catch (error) {
+      console.error("Failed to clear cache:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const formatAge = (timestamp) => {
-    if (!timestamp) return "N/A";
-    const ageMs = Date.now() - timestamp;
-    const ageMin = Math.floor(ageMs / 60000);
-    return `${ageMin}m ago`;
+  const warmupCache = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/cache-warmup", { method: "POST" });
+      const result = await response.json();
+
+      if (result.success) {
+        console.log("Cache warmed up:", result.warmed);
+        // Refresh stats after warmup
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    } catch (error) {
+      console.error("Failed to warmup cache:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-sm font-semibold">Cache Debug</h3>
-        <button
-          onClick={() => setIsVisible(false)}
-          className="text-gray-400 hover:text-white text-xs"
-        >
-          ✕
-        </button>
-      </div>
+    <div className="fixed bottom-4 right-4 z-50">
+      <button
+        onClick={() => setShowDetails(!showDetails)}
+        className={`px-3 py-2 rounded-lg shadow-lg text-sm flex items-center gap-2 text-white ${
+          performanceMetrics.alerts.length > 0
+            ? "bg-red-600 hover:bg-red-700 animate-pulse"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
+        disabled={isLoading}
+      >
+        💾 Cache: {cacheStats.cacheSize}
+        {performanceMetrics.alerts.length > 0 && (
+          <span className="bg-red-500 text-white text-xs px-1 rounded-full">
+            {performanceMetrics.alerts.length}
+          </span>
+        )}
+        {isLoading && (
+          <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+        )}
+      </button>
 
-      <div className="text-xs space-y-1">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <span className="text-gray-400">Total:</span> {stats.totalEntries}
+      {showDetails && (
+        <div className="absolute bottom-12 right-0 bg-gray-800 text-white p-4 rounded-lg shadow-lg min-w-80 max-w-96">
+          <h3 className="font-bold mb-2">Cache Status</h3>
+
+          {/* Basic Stats */}
+          <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+            <div>
+              Entries:{" "}
+              <span className="text-green-400">{cacheStats.cacheSize}</span>
+            </div>
+            <div>
+              Pending:{" "}
+              <span className="text-yellow-400">
+                {cacheStats.pendingRequests || 0}
+              </span>
+            </div>
+            <div>
+              Hit Rate:{" "}
+              <span className="text-blue-400">
+                {performanceMetrics.cacheHitRate.toFixed(1)}%
+              </span>
+            </div>
+            <div>
+              Avg Response:{" "}
+              <span className="text-purple-400">
+                {performanceMetrics.averageResponseTime.toFixed(0)}ms
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-gray-400">Valid:</span> {stats.validEntries}
+
+          {/* Performance Metrics */}
+          <div className="border-t border-gray-600 pt-2 mb-3">
+            <h4 className="text-sm font-semibold text-gray-300 mb-1">
+              Performance
+            </h4>
+            <div className="text-xs space-y-1">
+              <div>
+                Total Requests:{" "}
+                <span className="text-blue-300">
+                  {performanceMetrics.totalRequests}
+                </span>
+              </div>
+              <div>
+                Cache Hits:{" "}
+                <span className="text-green-300">
+                  {performanceMetrics.cacheHits}
+                </span>
+              </div>
+              <div>
+                Cache Misses:{" "}
+                <span className="text-red-300">
+                  {performanceMetrics.cacheMisses}
+                </span>
+              </div>
+              <div>
+                API Calls/min:{" "}
+                <span className="text-orange-300">
+                  {performanceMetrics.apiCallsPerMinute}
+                </span>
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="text-gray-400">Expired:</span>{" "}
-            {stats.expiredEntries}
-          </div>
-          <div>
-            <span className="text-gray-400">Hit Rate:</span>{" "}
-            {stats.totalEntries > 0
-              ? `${Math.round(
-                  (stats.validEntries / stats.totalEntries) * 100
-                )}%`
-              : "0%"}
+
+          {/* Alerts */}
+          {performanceMetrics.alerts.length > 0 && (
+            <div className="border-t border-gray-600 pt-2 mb-3">
+              <h4 className="text-sm font-semibold text-red-300 mb-1">
+                ⚠️ Alerts
+              </h4>
+              <div className="text-xs space-y-1">
+                {performanceMetrics.alerts.map((alert, i) => (
+                  <div
+                    key={i}
+                    className={`p-1 rounded ${
+                      alert.type === "error"
+                        ? "bg-red-900/50 text-red-200"
+                        : "bg-yellow-900/50 text-yellow-200"
+                    }`}
+                  >
+                    {alert.message}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cached Keys */}
+          {cacheStats.entries?.length > 0 && (
+            <div className="border-t border-gray-600 pt-2 mb-3">
+              <p className="text-sm text-gray-300 mb-1">Cached keys:</p>
+              <ul className="text-xs max-h-24 overflow-y-auto space-y-1">
+                {cacheStats.entries.map((key, i) => (
+                  <li key={i} className="text-green-400 break-all">
+                    • {key}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={clearCache}
+              className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs disabled:opacity-50"
+              disabled={isLoading}
+            >
+              {isLoading ? "Clearing..." : "Clear Cache"}
+            </button>
+
+            <button
+              onClick={warmupCache}
+              className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs disabled:opacity-50"
+              disabled={isLoading}
+            >
+              {isLoading ? "Warming..." : "Warmup"}
+            </button>
           </div>
         </div>
-
-        {stats.oldestEntry && (
-          <div className="pt-1 border-t border-gray-600">
-            <div>
-              <span className="text-gray-400">Oldest:</span>{" "}
-              {formatAge(stats.oldestEntry)}
-            </div>
-            <div>
-              <span className="text-gray-400">Newest:</span>{" "}
-              {formatAge(stats.newestEntry)}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-1 mt-3">
-        <button
-          onClick={() => {
-            clearCache();
-            setStats(getCacheStats());
-          }}
-          className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
-        >
-          Clear All
-        </button>
-        <button
-          onClick={() => {
-            clearCurrentMatchdayCache();
-            setStats(getCacheStats());
-          }}
-          className="px-2 py-1 bg-orange-600 hover:bg-orange-700 rounded text-xs"
-        >
-          Clear MD
-        </button>
-        <button
-          onClick={() => setStats(getCacheStats())}
-          className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
-        >
-          Refresh
-        </button>
-      </div>
+      )}
     </div>
   );
 }
 
 /**
  * Cache Status Indicator - Minimal indicator for production
+ * Shows different UI based on environment
  */
 export function CacheIndicator() {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({ cacheSize: 0 });
   const [showDebug, setShowDebug] = useState(false);
+  const isDevelopment = process.env.NODE_ENV === "development";
 
   useEffect(() => {
-    const updateStats = () => {
-      setStats(getCacheStats());
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/cache");
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch cache stats:", error);
+      }
     };
 
-    updateStats();
-    const interval = setInterval(updateStats, 10000); // Update every 10 seconds
+    fetchStats();
+    const interval = setInterval(fetchStats, isDevelopment ? 5000 : 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isDevelopment]);
 
-  if (!stats) return null;
+  // In production, show minimal indicator only
+  if (!isDevelopment) {
+    return (
+      <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-2 rounded-full shadow-lg z-40 text-xs">
+        💾 {stats.cacheSize}
+      </div>
+    );
+  }
 
+  // In development, show full debug functionality
   return (
     <>
       <button
         onClick={() => setShowDebug(!showDebug)}
-        className="fixed bottom-4 left-4 bg-gray-800 text-white p-2 rounded-full shadow-lg z-40 text-xs"
-        title={`Cache: ${stats.validEntries}/${stats.totalEntries} entries`}
+        className="fixed bottom-4 right-4 bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full shadow-lg z-40 text-xs transition-colors"
+        title={`Cache entries: ${stats.cacheSize}`}
       >
-        💾 {stats.validEntries}
+        💾 {stats.cacheSize}
       </button>
 
       <CacheDebug show={showDebug} />

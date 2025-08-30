@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
+import apiCache from "@/lib/api-cache";
 
 /**
  * Cache management API endpoint
@@ -8,7 +9,7 @@ import { revalidateTag } from "next/cache";
 
 export async function POST(request) {
   try {
-    const { action, matchday, tag } = await request.json();
+    const { action, tag } = await request.json();
 
     switch (action) {
       case "revalidate-all":
@@ -76,21 +77,34 @@ export async function POST(request) {
 }
 
 export async function GET() {
-  return NextResponse.json({
-    message: "Cache management endpoint",
-    availableActions: [
-      "revalidate-all",
-      "revalidate-matches",
-      "revalidate-matchday",
-      "revalidate-specific",
-    ],
-    usage: {
-      method: "POST",
-      body: {
-        action: "string (required)",
-        matchday: "number (optional)",
-        tag: "string (required for revalidate-specific)",
-      },
-    },
-  });
+  try {
+    const stats = apiCache.getStats();
+    return NextResponse.json(stats);
+  } catch (error) {
+    console.error("Failed to get cache stats:", error);
+    return NextResponse.json(
+      { error: "Failed to get cache stats" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const key = searchParams.get("key");
+
+    apiCache.clear(key);
+
+    return NextResponse.json({
+      success: true,
+      message: key ? `Cleared cache for ${key}` : "Cleared all cache",
+    });
+  } catch (error) {
+    console.error("Failed to clear cache:", error);
+    return NextResponse.json(
+      { error: "Failed to clear cache" },
+      { status: 500 }
+    );
+  }
 }
