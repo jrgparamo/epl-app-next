@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import apiCache from "@/lib/api-cache";
 
 const API_BASE_URL = "https://api.football-data.org/v4";
 const API_KEY = process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY;
@@ -19,29 +20,33 @@ export async function GET(request) {
   }
 
   try {
-    let endpoint = `/competitions/${PREMIER_LEAGUE_ID}/matches`;
-    if (matchday) {
-      endpoint += `?matchday=${matchday}`;
-    }
+    const cacheKey = `matches-${matchday || "all"}`;
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        "X-Auth-Token": API_KEY,
+    const data = await apiCache.get(
+      cacheKey,
+      async () => {
+        console.log(`🌐 Making API call for ${cacheKey}`);
+        let endpoint = `/competitions/${PREMIER_LEAGUE_ID}/matches`;
+        if (matchday) {
+          endpoint += `?matchday=${matchday}`;
+        }
+
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          headers: {
+            "X-Auth-Token": API_KEY,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `API request failed: ${response.status} ${response.statusText}`
+          );
+        }
+
+        return response.json();
       },
-      // Cache the response for 30 minutes with tags
-      next: {
-        revalidate: 1800,
-        tags: ["matches", `matches-${matchday || "all"}`],
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `API request failed: ${response.status} ${response.statusText}`
-      );
-    }
-
-    const data = await response.json();
+      30 * 60 * 1000 // 30 minutes TTL
+    );
 
     // Transform the data to match our app format
     const transformedMatches =
