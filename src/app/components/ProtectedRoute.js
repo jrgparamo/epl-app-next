@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children }) {
     if (loading) return; // Still loading
 
     if (!user) {
-      router.push("/auth/signin");
+      router.push("/");
     }
   }, [user, loading, router]);
 

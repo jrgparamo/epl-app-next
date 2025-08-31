@@ -1,8 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import Header from "./components/Header";
 import MatchList from "./components/MatchList";
 import WeekSelector from "./components/WeekSelector";
+import BottomNavigation from "./components/BottomNavigation";
+import SignInModal from "./components/SignInModal";
 import { CacheIndicator } from "./components/CacheDebug";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ErrorDisplay } from "./components/ErrorDisplay";
@@ -17,8 +21,38 @@ import { useCorrectPredictions } from "../hooks/useCorrectPredictions";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const isOnline = useNetworkStatus();
+  const [showSignInModal, setShowSignInModal] = useState(false);
+
+  // Show sign-in modal if user is not authenticated (after auth loading is complete)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      setShowSignInModal(true);
+    }
+  }, [user, authLoading]);
+
+  const handleSignInSuccess = () => {
+    setShowSignInModal(false);
+  };
+
+  const handleNavigationChange = (tabId) => {
+    switch (tabId) {
+      case "account":
+        router.push("/account");
+        break;
+      case "leaderboard":
+        router.push("/leaderboard");
+        break;
+      case "matches":
+        // Already on matches page, do nothing or scroll to top
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        break;
+      default:
+        break;
+    }
+  };
 
   const {
     currentWeek,
@@ -42,6 +76,18 @@ export default function Home() {
     matches,
     scorePredictions
   );
+
+  // Show loading while authentication is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#1a1a1a] text-white">
+        <Header predictions={0} />
+        <main className="container mx-auto px-4 py-8">
+          <LoadingSpinner text="Loading..." />
+        </main>
+      </div>
+    );
+  }
 
   if (loading && matches.length === 0) {
     return (
@@ -69,7 +115,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#1a1a1a] text-white">
       <Header predictions={totalCorrectPredictions} />
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-4 py-6 pb-24">
         <WeekSelector
           currentWeek={currentWeek}
           onWeekChange={handleWeekChange}
@@ -120,6 +166,17 @@ export default function Home() {
 
       {/* Cache indicator for development and debugging */}
       {process.env.NODE_ENV === "development" && <CacheIndicator />}
+
+      <BottomNavigation
+        activeTab="matches"
+        onTabChange={handleNavigationChange}
+      />
+
+      <SignInModal
+        isOpen={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+        onSignInSuccess={handleSignInSuccess}
+      />
     </div>
   );
 }
