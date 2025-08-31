@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { useAuth } from "../hooks/useAuth";
-import { signIn } from "next-auth/react";
+import { useAuth } from "./AuthProvider";
 import {
   getTeamLogo,
   getMatchStatusText,
@@ -17,7 +16,8 @@ export default function MatchCard({
   scorePrediction,
   onScorePrediction,
 }) {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
   const [homeScore, setHomeScore] = useState("");
   const [awayScore, setAwayScore] = useState("");
 
@@ -364,7 +364,7 @@ export default function MatchCard({
         <div className="mt-4 p-3 bg-blue-600 bg-opacity-10 border border-blue-600 rounded-lg">
           <div className="text-center">
             <button
-              onClick={() => signIn("google")}
+              onClick={() => (window.location.href = "/auth/signin")}
               className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
             >
               Sign in to predict scores
