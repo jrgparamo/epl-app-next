@@ -15,7 +15,6 @@ import {
 export default function MatchCard({
   match,
   scorePrediction,
-  onPrediction,
   onScorePrediction,
 }) {
   const { isAuthenticated } = useAuth();
@@ -160,22 +159,6 @@ export default function MatchCard({
       const homeScoreNum = newHomeScore === "" ? null : parseInt(newHomeScore);
       const awayScoreNum = newAwayScore === "" ? null : parseInt(newAwayScore);
       onScorePrediction(match.id, homeScoreNum, awayScoreNum);
-
-      // Automatically derive and save the outcome prediction based on score
-      if (homeScoreNum !== null && awayScoreNum !== null) {
-        let outcome;
-        if (homeScoreNum > awayScoreNum) {
-          outcome = "home";
-        } else if (awayScoreNum > homeScoreNum) {
-          outcome = "away";
-        } else {
-          outcome = "draw";
-        }
-        onPrediction(match.id, outcome);
-      } else {
-        // Clear the outcome prediction if scores are cleared
-        onPrediction(match.id, null);
-      }
     }
   };
 

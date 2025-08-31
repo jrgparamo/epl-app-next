@@ -4,7 +4,6 @@ import { formatMatchDate } from "../../lib/utils";
 export default function MatchList({
   matches,
   scorePredictions,
-  onPrediction,
   onScorePrediction,
 }) {
   // Group matches by date
@@ -42,7 +41,6 @@ export default function MatchList({
                   key={match.id}
                   match={match}
                   scorePrediction={scorePredictions[match.id]}
-                  onPrediction={onPrediction}
                   onScorePrediction={onScorePrediction}
                 />
               ))}
