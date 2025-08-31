@@ -1,21 +1,21 @@
 "use client";
-import { useSession } from "next-auth/react";
+import { useAuth } from "./AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function ProtectedRoute({ children }) {
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "loading") return; // Still loading
+    if (loading) return; // Still loading
 
-    if (!session) {
+    if (!user) {
       router.push("/auth/signin");
     }
-  }, [session, status, router]);
+  }, [user, loading, router]);
 
-  if (status === "loading") {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
         <div className="text-white">Loading...</div>
@@ -23,7 +23,7 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return null;
   }
 

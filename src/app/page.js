@@ -5,7 +5,7 @@ import Header from "./components/Header";
 import MatchList from "./components/MatchList";
 import WeekSelector from "./components/WeekSelector";
 import { CacheIndicator } from "./components/CacheDebug";
-import { useAuth } from "./hooks/useAuth";
+import { useAuth } from "./components/AuthProvider";
 import { getFixturesByMatchday, getCurrentMatchday } from "../lib/api";
 
 export default function Home() {
