@@ -4,7 +4,7 @@ export function PredictionStats({ user, correctPredictions }) {
   return (
     <div className="mt-2 p-3 bg-green-900 bg-opacity-30 border border-green-700 rounded-lg">
       <div className="text-center text-green-400">
-        Correct Predictions:{" "}
+        Correct Predictions for matchday:{" "}
         <span className="font-bold">{correctPredictions}</span>
       </div>
       <div className="text-xs text-green-300 text-center mt-1">

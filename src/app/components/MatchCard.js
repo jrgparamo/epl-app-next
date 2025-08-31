@@ -364,7 +364,7 @@ export default function MatchCard({
         <div className="mt-4 p-3 bg-blue-600 bg-opacity-10 border border-blue-600 rounded-lg">
           <div className="text-center">
             <button
-              onClick={() => (window.location.href = "/auth/signin")}
+              onClick={() => (window.location.href = "/")}
               className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
             >
               Sign in to predict scores
