@@ -9,16 +9,17 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
+    // Get initial user (authenticated)
+    const getInitialUser = async () => {
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      setUser(error ? null : user);
       setLoading(false);
     };
 
-    getInitialSession();
+    getInitialUser();
 
     // Listen for auth changes
     const {

@@ -37,15 +37,15 @@ export async function GET(request) {
 
     // Verify the user is authenticated and matches the requested userId
     const {
-      data: { session },
+      data: { user },
       error: authError,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user.id !== userId) {
+    if (user.id !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -102,15 +102,15 @@ export async function POST(request) {
 
     // Verify the user is authenticated and matches the requested userId
     const {
-      data: { session },
+      data: { user },
       error: authError,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user.id !== userId) {
+    if (user.id !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -166,15 +166,15 @@ export async function DELETE(request) {
 
     // Verify the user is authenticated and matches the requested userId
     const {
-      data: { session },
+      data: { user },
       error: authError,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user.id !== userId) {
+    if (user.id !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
