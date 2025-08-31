@@ -5,12 +5,17 @@ A modern Next.js application for predicting English Premier League match results
 ## Features
 
 - 🏆 **Real Premier League Data**: Live fixtures, results, and standings from Football Data API
-- 🎯 **Match Predictions**: Make predictions on upcoming matches
-- 🔐 **User Authentication**: Secure login with Google OAuth
+- 🎯 **Match Predictions**: Make score predictions on upcoming matches with points scoring system
+- 🔐 **User Authentication**: Secure login with Google OAuth via Supabase
 - 📱 **Responsive Design**: Works perfectly on desktop and mobile
 - ⚡ **Real-time Updates**: Live match status and score updates
 - 🎨 **Modern UI**: Dark theme with Tailwind CSS
 - 📊 **Matchday Navigation**: Browse all 38 Premier League matchdays
+- 💾 **Offline Support**: Predictions saved locally and synced when online
+- 🔄 **Smart Caching**: Intelligent API caching for better performance
+- 📈 **Prediction Scoring**: Points system for correct results (1pt) and exact scores (3pts)
+- 🔁 **Background Sync**: Automatic retry and sync of failed predictions
+- 🌐 **Connection Awareness**: Visual indicators for online/offline status
 
 ## API Integration
 
@@ -57,7 +62,12 @@ NEXT_PUBLIC_FOOTBALL_DATA_API_KEY=your_football_data_api_key
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_nextauth_secret
 
-# Optional: Google OAuth
+# Required: Supabase (for user data and predictions)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Required: Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 ```
@@ -106,22 +116,61 @@ Visit [http://localhost:3000](http://localhost:3000) to see the app.
 src/
 ├── app/
 │   ├── components/
-│   │   ├── Header.js          # Navigation and user info
-│   │   ├── MatchCard.js       # Individual match display
-│   │   ├── MatchList.js       # List of matches grouped by date
-│   │   ├── WeekSelector.js    # Matchday navigation
-│   │   └── AuthButton.js      # Authentication component
+│   │   ├── Header.js               # Navigation and user info
+│   │   ├── MatchCard.js            # Individual match display
+│   │   ├── MatchList.js            # List of matches grouped by date
+│   │   ├── WeekSelector.js         # Matchday navigation
+│   │   ├── AuthButton.js           # Authentication component
+│   │   ├── AuthProvider.js         # Authentication context provider
+│   │   ├── ProtectedRoute.js       # Route protection component
+│   │   ├── HowToPlayModal.js       # Instructions modal
+│   │   ├── CacheDebug.js           # Development cache debugging
+│   │   ├── LoadingSpinner.js       # Reusable loading indicator
+│   │   ├── ErrorDisplay.js         # Standardized error display
+│   │   ├── PredictionStats.js      # User prediction statistics
+│   │   ├── SyncStatusIndicator.js  # Prediction sync status display
+│   │   ├── MatchdayHeader.js       # Matchday header with status badges
+│   │   └── EmptyState.js           # Empty state component
 │   ├── api/
-│   │   └── auth/              # NextAuth configuration
-│   └── page.js                # Main application page
+│   │   ├── auth/
+│   │   │   └── [...nextauth]/      # NextAuth configuration
+│   │   ├── cache/                  # Cache management API
+│   │   ├── cache-warmup/           # Cache warming API
+│   │   ├── matchday/               # Current matchday API
+│   │   ├── matches/                # Matches data API
+│   │   └── predictions/            # Predictions management API
+│   ├── auth/
+│   │   ├── callback/               # OAuth callback page
+│   │   └── signin/                 # Sign-in page
+│   └── page.js                     # Main application page (refactored)
+├── hooks/
+│   ├── useNetworkStatus.js         # Online/offline detection hook
+│   ├── useMatches.js               # Match data loading and management
+│   ├── usePredictions.js           # Prediction state and sync management
+│   └── useCorrectPredictions.js    # Prediction scoring and statistics
 ├── lib/
-│   ├── api.js                 # Football Data API integration
-│   └── utils.js               # Helper functions and team mappings
-└── hooks/
-    └── useAuth.js             # Authentication hook
+│   ├── api.js                      # Football Data API integration
+│   ├── api-cache.js                # API caching utilities
+│   ├── cache.js                    # General caching utilities
+│   ├── predictions.js              # Prediction service with offline support
+│   ├── supabase.js                 # Supabase database client
+│   ├── utils.js                    # Helper functions and team mappings
+│   └── warmup.js                   # Cache warming utilities
+├── docs/                           # Documentation files
+└── scores/                         # Sample score data
 ```
 
 ## Key Features Explained
+
+### Recent Improvements ✨
+
+**Code Refactoring (August 2025)**
+
+- **Modular Architecture**: Extracted complex logic into reusable custom hooks
+- **Component Separation**: Split large components into focused, single-responsibility components
+- **Improved Maintainability**: Reduced main page from 719 lines to 120 lines
+- **Better Developer Experience**: Cleaner code structure following React best practices
+- **Enhanced Testability**: Isolated hooks and components for easier unit testing
 
 ### Real-Time Match Data
 
@@ -132,10 +181,16 @@ src/
 
 ### Prediction System
 
-- Users can predict match outcomes (Home, Draw, Away)
-- Predictions are saved locally per user
+- Users can predict exact match scores (not just outcomes)
+- **Scoring System**:
+  - 1 point for correct result (win/draw/loss)
+  - 3 points total for exact score prediction (includes the 1 point for correct result)
+- Predictions are saved to Supabase database with local backup
+- **Offline Support**: Predictions saved locally and synced when connection restored
+- **Smart Retry**: Failed syncs automatically retry in background
 - Predictions lock when matches start
-- Visual feedback for saved predictions
+- Visual feedback for saved predictions and sync status
+- Real-time sync status indicators
 
 ### Matchday Navigation
 
@@ -146,18 +201,49 @@ src/
 
 ### Authentication
 
-- Google OAuth integration
+- Google OAuth integration via Supabase
 - Persistent user sessions
 - User-specific prediction storage
 - Secure authentication flow
 
+### Custom Hooks Architecture
+
+**`useNetworkStatus`**
+
+- Detects online/offline status
+- Triggers reconnection handling
+- Provides connection state to components
+
+**`useMatches`**
+
+- Manages match data loading and caching
+- Handles matchday navigation
+- Provides loading and error states
+
+**`usePredictions`**
+
+- Manages prediction state and persistence
+- Handles offline/online sync with retry logic
+- Provides prediction CRUD operations
+- Background sync with queue management
+
+**`useCorrectPredictions`**
+
+- Calculates and tracks prediction accuracy
+- Implements points scoring system
+- Manages historical prediction statistics
+- Prevents double-counting of finished matches
+
 ## Technologies Used
 
-- **Next.js 14**: React framework with App Router
-- **React 18**: Component library
+- **Next.js 15**: React framework with App Router and Turbopack
+- **React 18**: Component library with hooks and context
 - **Tailwind CSS**: Utility-first CSS framework
-- **NextAuth.js**: Authentication library
+- **NextAuth.js**: Authentication library with Google OAuth
+- **Supabase**: Backend-as-a-Service for database and authentication
 - **Football Data API**: Premier League data source
+- **Custom Hooks**: Modular state management and business logic
+- **Service Workers**: Offline support and background sync
 
 ## Browser Support
 
