@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
+import ScoreModal from "./ScoreModal";
 import {
   getTeamLogo,
   getMatchStatusText,
@@ -20,6 +21,9 @@ export default function MatchCard({
   const isAuthenticated = !!user;
   const [homeScore, setHomeScore] = useState("");
   const [awayScore, setAwayScore] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTeam, setModalTeam] = useState(null);
+  const [modalTeamType, setModalTeamType] = useState(null);
 
   // Load score prediction when component mounts or scorePrediction changes
   useEffect(() => {
@@ -134,31 +138,45 @@ export default function MatchCard({
     return "text-gray-400"; // Default
   };
 
-  const handleScoreChange = (team, value) => {
+  const openScoreModal = (team, teamType) => {
     if (!isAuthenticated) return;
+    setModalTeam(team);
+    setModalTeamType(teamType);
+    setModalOpen(true);
+  };
 
-    // Only allow numbers and empty string
-    if (value !== "" && (isNaN(value) || value < 0 || value > 20)) return;
-
+  const handleScoreSelect = (score) => {
     let newHomeScore = homeScore;
-    let newAwayScore = awayScore;
 
-    if (team === "home") {
-      setHomeScore(value);
-      newHomeScore = value;
+    if (modalTeamType === "home") {
+      setHomeScore(score.toString());
+      newHomeScore = score.toString();
     } else {
-      setAwayScore(value);
-      newAwayScore = value;
+      setAwayScore(score.toString());
     }
 
-    // Save to localStorage when both scores are provided or when clearing both
-    if (
-      (newHomeScore !== "" && newAwayScore !== "") ||
-      (newHomeScore === "" && newAwayScore === "")
-    ) {
-      const homeScoreNum = newHomeScore === "" ? null : parseInt(newHomeScore);
-      const awayScoreNum = newAwayScore === "" ? null : parseInt(newAwayScore);
-      onScorePrediction(match.id, homeScoreNum, awayScoreNum);
+    // Check if we should open modal for the other team
+    if (modalTeamType === "home" && awayScore === "") {
+      // Home score was just set, now open modal for away team
+      setTimeout(() => {
+        setModalTeam(match.awayTeam);
+        setModalTeamType("away");
+        setModalOpen(true);
+      }, 300);
+    } else if (modalTeamType === "away" && homeScore === "") {
+      // Away score was just set, now open modal for home team
+      setTimeout(() => {
+        setModalTeam(match.homeTeam);
+        setModalTeamType("home");
+        setModalOpen(true);
+      }, 300);
+    }
+
+    // Save prediction when both scores are available
+    if (modalTeamType === "home" && awayScore !== "") {
+      onScorePrediction(match.id, score, parseInt(awayScore));
+    } else if (modalTeamType === "away" && newHomeScore !== "") {
+      onScorePrediction(match.id, parseInt(newHomeScore), score);
     }
   };
 
@@ -246,6 +264,20 @@ export default function MatchCard({
         <div className="flex items-center justify-between mt-3">
           <span className="text-xs text-gray-400">{match.id}</span>
         </div>
+
+        {/* Score Modal */}
+        <ScoreModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          team={modalTeam}
+          currentScore={
+            modalTeamType === "home"
+              ? parseInt(homeScore) || null
+              : parseInt(awayScore) || null
+          }
+          onScoreSelect={handleScoreSelect}
+          matchInfo={match}
+        />
       </div>
     );
   }
@@ -316,34 +348,40 @@ export default function MatchCard({
               <span className="text-xs text-gray-400 mb-1">
                 {match.homeTeam.shortName || match.homeTeam.name}
               </span>
-              <input
-                type="number"
-                min="0"
-                max="20"
-                value={homeScore}
-                onChange={(e) => handleScoreChange("home", e.target.value)}
-                className={`w-16 h-10 text-center bg-gray-700 border rounded-lg text-white focus:outline-none focus:border-blue-500 ${
-                  homeScore !== "" ? "border-blue-500" : "border-gray-600"
+              <button
+                onClick={() => openScoreModal(match.homeTeam, "home")}
+                className={`w-16 h-12 text-center bg-gray-700 border rounded-lg text-white focus:outline-none focus:border-blue-500 hover:bg-gray-600 transition-all duration-200 transform active:scale-95 touch-manipulation ${
+                  homeScore !== ""
+                    ? "border-blue-500 bg-blue-600 bg-opacity-20"
+                    : "border-gray-600"
                 }`}
-                placeholder="0"
-              />
+                style={{
+                  WebkitTapHighlightColor: "transparent",
+                  minHeight: "48px",
+                }}
+              >
+                {homeScore || "?"}
+              </button>
             </div>
             <span className="text-gray-400 text-lg">-</span>
             <div className="flex flex-col items-center">
               <span className="text-xs text-gray-400 mb-1">
                 {match.awayTeam.shortName || match.awayTeam.name}
               </span>
-              <input
-                type="number"
-                min="0"
-                max="20"
-                value={awayScore}
-                onChange={(e) => handleScoreChange("away", e.target.value)}
-                className={`w-16 h-10 text-center bg-gray-700 border rounded-lg text-white focus:outline-none focus:border-blue-500 ${
-                  awayScore !== "" ? "border-blue-500" : "border-gray-600"
+              <button
+                onClick={() => openScoreModal(match.awayTeam, "away")}
+                className={`w-16 h-12 text-center bg-gray-700 border rounded-lg text-white focus:outline-none focus:border-blue-500 hover:bg-gray-600 transition-all duration-200 transform active:scale-95 touch-manipulation ${
+                  awayScore !== ""
+                    ? "border-blue-500 bg-blue-600 bg-opacity-20"
+                    : "border-gray-600"
                 }`}
-                placeholder="0"
-              />
+                style={{
+                  WebkitTapHighlightColor: "transparent",
+                  minHeight: "48px",
+                }}
+              >
+                {awayScore || "?"}
+              </button>
             </div>
           </div>
           {homeScore !== "" && awayScore !== "" && (
@@ -354,7 +392,7 @@ export default function MatchCard({
           {(homeScore !== "" || awayScore !== "") &&
             !(homeScore !== "" && awayScore !== "") && (
               <div className="text-center text-xs text-yellow-300 mt-2">
-                Enter both scores to save prediction
+                Tap to set {homeScore === "" ? "home" : "away"} team score
               </div>
             )}
         </div>
@@ -410,6 +448,20 @@ export default function MatchCard({
       <div className="flex items-center justify-between mt-3">
         <span className="text-xs text-gray-400">{match.id}</span>
       </div>
+
+      {/* Score Modal */}
+      <ScoreModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        team={modalTeam}
+        currentScore={
+          modalTeamType === "home"
+            ? parseInt(homeScore) || null
+            : parseInt(awayScore) || null
+        }
+        onScoreSelect={handleScoreSelect}
+        matchInfo={match}
+      />
     </div>
   );
 }
