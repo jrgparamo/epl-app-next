@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function CacheDebug({ show = true }) {
   const [cacheStats, setCacheStats] = useState({
@@ -26,85 +26,77 @@ export default function CacheDebug({ show = true }) {
     alerts: [],
   });
 
-  useEffect(() => {
+  const fetchStats = async () => {
     if (!show) return;
 
-    const fetchStats = async () => {
-      try {
-        setIsLoading(true);
-        const startTime = Date.now();
-        const response = await fetch("/api/cache");
-        const responseTime = Date.now() - startTime;
+    try {
+      setIsLoading(true);
+      const startTime = Date.now();
+      const response = await fetch("/api/cache");
+      const responseTime = Date.now() - startTime;
 
-        if (response.ok) {
-          const stats = await response.json();
-          setCacheStats(stats);
+      if (response.ok) {
+        const stats = await response.json();
+        setCacheStats(stats);
 
-          // Calculate performance metrics inline
-          setPerformanceMetrics((prevMetrics) => {
-            const currentTime = Date.now();
-            const totalRequests = prevMetrics.totalRequests + 1;
-            const cacheHits =
-              stats.cacheSize > 0
-                ? prevMetrics.cacheHits + 1
-                : prevMetrics.cacheHits;
-            const cacheMisses = totalRequests - cacheHits;
-            const cacheHitRate =
-              totalRequests > 0 ? (cacheHits / totalRequests) * 100 : 0;
+        // Calculate performance metrics inline
+        setPerformanceMetrics((prevMetrics) => {
+          const currentTime = Date.now();
+          const totalRequests = prevMetrics.totalRequests + 1;
+          const cacheHits =
+            stats.cacheSize > 0
+              ? prevMetrics.cacheHits + 1
+              : prevMetrics.cacheHits;
+          const cacheMisses = totalRequests - cacheHits;
+          const cacheHitRate =
+            totalRequests > 0 ? (cacheHits / totalRequests) * 100 : 0;
 
-            // Calculate API calls per minute
-            const timeSinceStart =
-              currentTime - (prevMetrics.lastApiCall || currentTime);
-            const minutesSinceStart = Math.max(timeSinceStart / 60000, 1);
-            const apiCallsPerMinute = Math.round(
-              cacheMisses / minutesSinceStart
-            );
+          // Calculate API calls per minute
+          const timeSinceStart =
+            currentTime - (prevMetrics.lastApiCall || currentTime);
+          const minutesSinceStart = Math.max(timeSinceStart / 60000, 1);
+          const apiCallsPerMinute = Math.round(cacheMisses / minutesSinceStart);
 
-            // Calculate alerts
-            const alerts = [];
-            if (apiCallsPerMinute > 8) {
-              alerts.push({
-                type: "warning",
-                message: `High API usage: ${apiCallsPerMinute} calls/minute`,
-              });
-            }
-            if (responseTime > 500) {
-              alerts.push({
-                type: "error",
-                message: `Slow response: ${responseTime}ms`,
-              });
-            }
-            if (cacheHitRate < 95 && totalRequests > 10) {
-              alerts.push({
-                type: "warning",
-                message: `Low cache hit rate: ${cacheHitRate.toFixed(1)}%`,
-              });
-            }
+          // Calculate alerts
+          const alerts = [];
+          if (apiCallsPerMinute > 8) {
+            alerts.push({
+              type: "warning",
+              message: `High API usage: ${apiCallsPerMinute} calls/minute`,
+            });
+          }
+          if (responseTime > 500) {
+            alerts.push({
+              type: "error",
+              message: `Slow response: ${responseTime}ms`,
+            });
+          }
+          if (cacheHitRate < 95 && totalRequests > 10) {
+            alerts.push({
+              type: "warning",
+              message: `Low cache hit rate: ${cacheHitRate.toFixed(1)}%`,
+            });
+          }
 
-            return {
-              cacheHitRate,
-              averageResponseTime:
-                (prevMetrics.averageResponseTime + responseTime) / 2,
-              apiCallsPerMinute,
-              totalRequests,
-              cacheHits,
-              cacheMisses,
-              lastApiCall: currentTime,
-              alerts,
-            };
-          });
-        }
-      } catch (error) {
-        console.error("Failed to fetch cache stats:", error);
-      } finally {
-        setIsLoading(false);
+          return {
+            cacheHitRate,
+            averageResponseTime:
+              (prevMetrics.averageResponseTime + responseTime) / 2,
+            apiCallsPerMinute,
+            totalRequests,
+            cacheHits,
+            cacheMisses,
+            lastApiCall: currentTime,
+            alerts,
+          };
+        });
       }
-    };
-
-    fetchStats();
-    const interval = setInterval(fetchStats, 5000); // Update every 5 seconds
-    return () => clearInterval(interval);
-  }, [show]); // Only depend on 'show' prop
+    } catch (error) {
+      console.error("Failed to fetch cache stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const clearCache = async () => {
     try {
@@ -136,12 +128,20 @@ export default function CacheDebug({ show = true }) {
     }
   };
 
+  const handleDetailsToggle = () => {
+    if (!showDetails) {
+      // Fetch fresh stats when opening the details panel
+      fetchStats();
+    }
+    setShowDetails(!showDetails);
+  };
+
   if (!show) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <button
-        onClick={() => setShowDetails(!showDetails)}
+        onClick={handleDetailsToggle}
         className={`px-3 py-2 rounded-lg shadow-lg text-sm flex items-center gap-2 text-white ${
           performanceMetrics.alerts.length > 0
             ? "bg-red-600 hover:bg-red-700 animate-pulse"
@@ -262,6 +262,14 @@ export default function CacheDebug({ show = true }) {
 
           <div className="mt-3 flex gap-2">
             <button
+              onClick={fetchStats}
+              className="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs disabled:opacity-50"
+              disabled={isLoading}
+            >
+              {isLoading ? "Refreshing..." : "Refresh"}
+            </button>
+
+            <button
               onClick={clearCache}
               className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs disabled:opacity-50"
               disabled={isLoading}
@@ -290,29 +298,33 @@ export default function CacheDebug({ show = true }) {
 export function CacheIndicator() {
   const [stats, setStats] = useState({ cacheSize: 0 });
   const [showDebug, setShowDebug] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const isDevelopment = process.env.NODE_ENV === "development";
 
-  useEffect(() => {
-    // Only fetch stats in development
+  const fetchStats = async () => {
     if (!isDevelopment) return;
 
-    const fetchStats = async () => {
-      try {
-        const response = await fetch("/api/cache");
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch cache stats:", error);
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/cache");
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch cache stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchStats();
-    const interval = setInterval(fetchStats, 5000);
-
-    return () => clearInterval(interval);
-  }, [isDevelopment]);
+  const handleButtonClick = () => {
+    if (!showDebug) {
+      // If debug panel is closed, fetch stats when opening
+      fetchStats();
+    }
+    setShowDebug(!showDebug);
+  };
 
   // Don't render anything in production
   if (!isDevelopment) {
@@ -323,11 +335,15 @@ export function CacheIndicator() {
   return (
     <>
       <button
-        onClick={() => setShowDebug(!showDebug)}
-        className="fixed bottom-4 right-4 bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full shadow-lg z-40 text-xs transition-colors"
-        title={`Cache entries: ${stats.cacheSize}`}
+        onClick={handleButtonClick}
+        className="fixed bottom-4 right-4 bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full shadow-lg z-40 text-xs transition-colors disabled:opacity-50"
+        title={`Cache entries: ${stats.cacheSize} (Click to refresh)`}
+        disabled={isLoading}
       >
         💾 {stats.cacheSize}
+        {isLoading && (
+          <div className="inline-block ml-1 w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
+        )}
       </button>
 
       <CacheDebug show={showDebug} />
