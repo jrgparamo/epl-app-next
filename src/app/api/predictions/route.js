@@ -1,5 +1,28 @@
-import { supabase } from "@/lib/supabase";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+
+function createSupabaseServerClient() {
+  const cookieStore = cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name, value, options) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name, options) {
+          cookieStore.set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+}
 
 export async function GET(request) {
   try {
@@ -8,6 +31,22 @@ export async function GET(request) {
 
     if (!userId) {
       return NextResponse.json({ error: "User ID required" }, { status: 400 });
+    }
+
+    const supabase = createSupabaseServerClient();
+
+    // Verify the user is authenticated and matches the requested userId
+    const {
+      data: { session },
+      error: authError,
+    } = await supabase.auth.getSession();
+
+    if (authError || !session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.id !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { data, error } = await supabase
@@ -59,6 +98,22 @@ export async function POST(request) {
       );
     }
 
+    const supabase = createSupabaseServerClient();
+
+    // Verify the user is authenticated and matches the requested userId
+    const {
+      data: { session },
+      error: authError,
+    } = await supabase.auth.getSession();
+
+    if (authError || !session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.id !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { data, error } = await supabase
       .from("user_predictions")
       .upsert(
@@ -105,6 +160,22 @@ export async function DELETE(request) {
         { error: "User ID and Match ID required" },
         { status: 400 }
       );
+    }
+
+    const supabase = createSupabaseServerClient();
+
+    // Verify the user is authenticated and matches the requested userId
+    const {
+      data: { session },
+      error: authError,
+    } = await supabase.auth.getSession();
+
+    if (authError || !session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.id !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { error } = await supabase
