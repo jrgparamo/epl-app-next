@@ -13,13 +13,11 @@ export default function Header({ predictions = 0 }) {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold text-green-400">
-                EPL Top Picks
-              </h1>
+              <h1 className="text-xl font-bold text-green-400">Top Picks</h1>
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-400">This week</div>
+              <div className="text-sm text-gray-400">Total correct</div>
               <div className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
                 {predictions}
               </div>

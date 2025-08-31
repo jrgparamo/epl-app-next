@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Header from "./components/Header";
 import MatchList from "./components/MatchList";
 import WeekSelector from "./components/WeekSelector";
@@ -18,6 +18,7 @@ export default function Home() {
   const [predictions, setPredictions] = useState({});
   const [scorePredictions, setScorePredictions] = useState({});
   const [correctPredictions, setCorrectPredictions] = useState(0);
+  const [totalCorrectPredictions, setTotalCorrectPredictions] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Load current matchday and initial matches
@@ -87,6 +88,20 @@ export default function Home() {
       );
       if (savedCorrectCount) {
         setCorrectPredictions(parseInt(savedCorrectCount, 10));
+      }
+
+      // Load total correct predictions from localStorage
+      const savedTotalCorrect = localStorage.getItem(
+        `total_correct_predictions_${user.email}`
+      );
+      if (savedTotalCorrect) {
+        setTotalCorrectPredictions(parseInt(savedTotalCorrect, 10));
+      } else {
+        // One-time migration: calculate initial total for existing users
+        setTotalCorrectPredictions(0);
+        localStorage.setItem(`total_correct_predictions_${user.email}`, "0");
+        // Clear processed matches to allow recalculation
+        localStorage.removeItem(`processed_matches_${user.email}`);
       }
     }
   }, [user]);
@@ -161,6 +176,42 @@ export default function Home() {
     );
   };
 
+  // Update total correct predictions when matches finish
+  const updateTotalCorrectPredictions = useCallback(
+    (match, points) => {
+      if (!user) return;
+
+      // Get the key to track processed matches
+      const processedKey = `processed_matches_${user.email}`;
+      const processedMatches = JSON.parse(
+        localStorage.getItem(processedKey) || "{}"
+      );
+
+      // Check if this match has already been processed
+      if (processedMatches[match.id]) {
+        return; // Already processed, don't add points again
+      }
+
+      // Mark this match as processed
+      processedMatches[match.id] = true;
+      localStorage.setItem(processedKey, JSON.stringify(processedMatches));
+
+      // Update total correct predictions
+      const currentTotal = parseInt(
+        localStorage.getItem(`total_correct_predictions_${user.email}`) || "0",
+        10
+      );
+      const newTotal = currentTotal + points;
+
+      setTotalCorrectPredictions(newTotal);
+      localStorage.setItem(
+        `total_correct_predictions_${user.email}`,
+        newTotal.toString()
+      );
+    },
+    [user]
+  );
+
   // Update correct predictions count when matches change or predictions are updated
   useEffect(() => {
     if (!user || !matches.length) return;
@@ -183,14 +234,23 @@ export default function Home() {
             derivedPrediction = "draw";
           }
 
+          let pointsEarned = 0;
+
           // Check result prediction (1 point)
           if (checkPredictionCorrect(match, derivedPrediction)) {
             newCorrectCount++;
+            pointsEarned++;
           }
 
           // Check exact score prediction (additional 2 points)
           if (checkScorePredictionCorrect(match, scorePrediction)) {
             newCorrectCount += 2;
+            pointsEarned += 2;
+          }
+
+          // Update total correct predictions for finished matches
+          if (pointsEarned > 0) {
+            updateTotalCorrectPredictions(match, pointsEarned);
           }
         }
       }
@@ -201,12 +261,14 @@ export default function Home() {
       `correct_predictions_${user.email}`,
       newCorrectCount.toString()
     );
-  }, [matches, scorePredictions, user]);
+  }, [matches, scorePredictions, user, updateTotalCorrectPredictions]);
+
+  // This useEffect is no longer needed since we update total incrementally
 
   if (loading && matches.length === 0) {
     return (
       <div className="min-h-screen bg-[#1a1a1a] text-white">
-        <Header />
+        <Header predictions={totalCorrectPredictions} />
         <main className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
@@ -222,7 +284,7 @@ export default function Home() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#1a1a1a] text-white">
-        <Header />
+        <Header predictions={totalCorrectPredictions} />
         <main className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
@@ -248,7 +310,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
-      <Header />
+      <Header predictions={totalCorrectPredictions} />
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         <WeekSelector
