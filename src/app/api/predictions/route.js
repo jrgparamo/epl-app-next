@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-function createSupabaseServerClient() {
-  const cookieStore = cookies();
+async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -33,7 +33,7 @@ export async function GET(request) {
       return NextResponse.json({ error: "User ID required" }, { status: 400 });
     }
 
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     // Verify the user is authenticated and matches the requested userId
     const {
@@ -98,7 +98,7 @@ export async function POST(request) {
       );
     }
 
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     // Verify the user is authenticated and matches the requested userId
     const {
@@ -162,7 +162,7 @@ export async function DELETE(request) {
       );
     }
 
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     // Verify the user is authenticated and matches the requested userId
     const {
