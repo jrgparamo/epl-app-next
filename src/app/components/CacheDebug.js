@@ -293,6 +293,9 @@ export function CacheIndicator() {
   const isDevelopment = process.env.NODE_ENV === "development";
 
   useEffect(() => {
+    // Only fetch stats in development
+    if (!isDevelopment) return;
+
     const fetchStats = async () => {
       try {
         const response = await fetch("/api/cache");
@@ -306,18 +309,14 @@ export function CacheIndicator() {
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, isDevelopment ? 5000 : 10000);
+    const interval = setInterval(fetchStats, 5000);
 
     return () => clearInterval(interval);
   }, [isDevelopment]);
 
-  // In production, show minimal indicator only
+  // Don't render anything in production
   if (!isDevelopment) {
-    return (
-      <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-2 rounded-full shadow-lg z-40 text-xs">
-        💾 {stats.cacheSize}
-      </div>
-    );
+    return null;
   }
 
   // In development, show full debug functionality

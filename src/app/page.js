@@ -712,7 +712,7 @@ export default function Home() {
       </main>
 
       {/* Cache indicator for development and debugging */}
-      <CacheIndicator />
+      {process.env.NODE_ENV === "development" && <CacheIndicator />}
     </div>
   );
 }
