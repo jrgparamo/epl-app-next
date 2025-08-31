@@ -15,7 +15,6 @@ export default function Home() {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [predictions, setPredictions] = useState({});
   const [scorePredictions, setScorePredictions] = useState({});
   const [correctPredictions, setCorrectPredictions] = useState(0);
   const [totalCorrectPredictions, setTotalCorrectPredictions] = useState(0);
@@ -69,13 +68,6 @@ export default function Home() {
   // Load saved predictions and correct prediction count from localStorage
   useEffect(() => {
     if (user) {
-      const savedPredictions = localStorage.getItem(
-        `predictions_${user.email}`
-      );
-      if (savedPredictions) {
-        setPredictions(JSON.parse(savedPredictions));
-      }
-
       const savedScorePredictions = localStorage.getItem(
         `score_predictions_${user.email}`
       );
@@ -109,21 +101,6 @@ export default function Home() {
   const handleWeekChange = (week) => {
     setCurrentWeek(week);
     setError(null);
-  };
-
-  const handlePrediction = (matchId, prediction) => {
-    if (!user) return;
-
-    const newPredictions = {
-      ...predictions,
-      [matchId]: prediction,
-    };
-
-    setPredictions(newPredictions);
-    localStorage.setItem(
-      `predictions_${user.email}`,
-      JSON.stringify(newPredictions)
-    );
   };
 
   const handleScorePrediction = (matchId, homeScore, awayScore) => {
@@ -370,7 +347,6 @@ export default function Home() {
           <MatchList
             matches={matches}
             scorePredictions={scorePredictions}
-            onPrediction={handlePrediction}
             onScorePrediction={handleScorePrediction}
           />
         )}
