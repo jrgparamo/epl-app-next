@@ -32,7 +32,7 @@ export default function HowToPlayModal({ isOpen, onClose }) {
                 Scoring
               </h3>
               <div className="relative flex items-center justify-between mb-6">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
                   <h4 className="font-medium text-white">Correct outcome</h4>
                   <p className="text-sm font-medium text-gray-400">
                     Winner or draw
@@ -43,8 +43,10 @@ export default function HowToPlayModal({ isOpen, onClose }) {
                 </p>
               </div>
               <div className="relative flex items-center justify-between ">
-                <div className="flex flex-col gap-3">
-                  <h4 className="font-medium text-white">Exact Score</h4>
+                <div className="flex flex-col gap-1">
+                  <h4 className="font-medium text-white">
+                    Correct outcome and score
+                  </h4>
                   <p className="text-sm font-medium text-gray-400">
                     Winner or draw with exact score
                   </p>

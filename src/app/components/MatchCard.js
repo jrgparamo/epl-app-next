@@ -30,6 +30,111 @@ export default function MatchCard({
     }
   }, [scorePrediction]);
 
+  // Check if a prediction is correct
+  const checkPredictionCorrect = (match, userPrediction) => {
+    if (!match.score || !match.score.fullTime) return false;
+
+    const { fullTime } = match.score;
+    const homeScore = fullTime.home;
+    const awayScore = fullTime.away;
+
+    // If it's a draw
+    if (homeScore === awayScore) {
+      return userPrediction === "draw";
+    }
+
+    // Home win
+    if (homeScore > awayScore) {
+      return userPrediction === "home";
+    }
+
+    // Away win
+    return userPrediction === "away";
+  };
+
+  // Check if a score prediction is correct
+  const checkScorePredictionCorrect = (match, scorePrediction) => {
+    if (!match.score || !match.score.fullTime || !scorePrediction) return false;
+    if (scorePrediction.home === null || scorePrediction.away === null)
+      return false;
+
+    const { fullTime } = match.score;
+    return (
+      fullTime.home === scorePrediction.home &&
+      fullTime.away === scorePrediction.away
+    );
+  };
+
+  // Get background color based on prediction correctness
+  const getPredictionBackgroundColor = () => {
+    if (!isMatchFinished(match.status) || !scorePrediction) {
+      return "bg-gray-600 bg-opacity-20 border-gray-600"; // Default
+    }
+
+    if (scorePrediction.home !== null && scorePrediction.away !== null) {
+      // Derive the result prediction from score prediction
+      let derivedPrediction;
+      if (scorePrediction.home > scorePrediction.away) {
+        derivedPrediction = "home";
+      } else if (scorePrediction.away > scorePrediction.home) {
+        derivedPrediction = "away";
+      } else {
+        derivedPrediction = "draw";
+      }
+
+      // Check if prediction is correct
+      const isResultCorrect = checkPredictionCorrect(match, derivedPrediction);
+      const isScoreCorrect = checkScorePredictionCorrect(
+        match,
+        scorePrediction
+      );
+
+      if (isScoreCorrect) {
+        return "bg-green-600 bg-opacity-30 border-green-500"; // Exact score correct
+      } else if (isResultCorrect) {
+        return "bg-green-600 bg-opacity-20 border-green-600"; // Result correct
+      } else {
+        return "bg-red-600 bg-opacity-20 border-red-600"; // Incorrect
+      }
+    }
+
+    return "bg-gray-600 bg-opacity-20 border-gray-600"; // Default
+  };
+
+  // Get text color based on prediction correctness
+  const getPredictionTextColor = () => {
+    if (!isMatchFinished(match.status) || !scorePrediction) {
+      return "text-gray-400"; // Default
+    }
+
+    if (scorePrediction.home !== null && scorePrediction.away !== null) {
+      // Derive the result prediction from score prediction
+      let derivedPrediction;
+      if (scorePrediction.home > scorePrediction.away) {
+        derivedPrediction = "home";
+      } else if (scorePrediction.away > scorePrediction.home) {
+        derivedPrediction = "away";
+      } else {
+        derivedPrediction = "draw";
+      }
+
+      // Check if prediction is correct
+      const isResultCorrect = checkPredictionCorrect(match, derivedPrediction);
+      const isScoreCorrect = checkScorePredictionCorrect(
+        match,
+        scorePrediction
+      );
+
+      if (isScoreCorrect || isResultCorrect) {
+        return "text-green-100"; // Lighter text for correct predictions
+      } else {
+        return "text-red-100"; // Lighter text for incorrect predictions
+      }
+    }
+
+    return "text-gray-400"; // Default
+  };
+
   const handleScoreChange = (team, value) => {
     if (!isAuthenticated) return;
 
@@ -134,8 +239,10 @@ export default function MatchCard({
         </div>
 
         {scorePrediction && isAuthenticated && (
-          <div className="mt-4 p-3 bg-gray-600 bg-opacity-20 border border-gray-600 rounded-lg">
-            <div className="text-center text-sm text-gray-400">
+          <div
+            className={`mt-4 p-3 border rounded-lg ${getPredictionBackgroundColor()}`}
+          >
+            <div className={`text-center text-sm ${getPredictionTextColor()}`}>
               Your prediction: {scorePrediction.home} - {scorePrediction.away}
               {scorePrediction.home !== null &&
                 scorePrediction.away !== null && (
