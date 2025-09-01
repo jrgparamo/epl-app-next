@@ -13,10 +13,12 @@ export async function POST(request) {
     console.log("Starting automatic point calculation...");
 
     // Fetch finished matches from the matches API
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
     const matchesResponse = await fetch(
-      `${
-        process.env.NEXTAUTH_URL || "http://localhost:3000"
-      }/api/matches?status=FINISHED`,
+      `${baseUrl}/api/matches?status=FINISHED`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -34,19 +36,16 @@ export async function POST(request) {
     console.log(`Found ${finishedMatches.length} finished matches`);
 
     // Calculate points for finished matches
-    const pointsResponse = await fetch(
-      `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/points`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.CRON_SECRET}`,
-        },
-        body: JSON.stringify({
-          matches: finishedMatches,
-        }),
-      }
-    );
+    const pointsResponse = await fetch(`${baseUrl}/api/points`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.CRON_SECRET}`,
+      },
+      body: JSON.stringify({
+        matches: finishedMatches,
+      }),
+    });
 
     if (!pointsResponse.ok) {
       throw new Error("Failed to calculate points");
