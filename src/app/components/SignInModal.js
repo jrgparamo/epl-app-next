@@ -204,7 +204,7 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
               className={`p-3 rounded-lg text-sm ${
                 message.includes("Check your email")
                   ? "bg-[#00c851] bg-opacity-20 text-[#00c851] border border-[#00c851] border-opacity-30"
-                  : "bg-[#ff4444] bg-opacity-20 text-[#ff4444] border border-[#ff4444] border-opacity-30"
+                  : "bg-[#ff4444] bg-opacity-20 text-[#fff] border border-[#ff4444] border-opacity-30"
               }`}
             >
               {message}

@@ -18,6 +18,7 @@ import { useAuth } from "./components/AuthProvider";
 import { useMatches } from "../hooks/useMatches";
 import { usePredictions } from "../hooks/usePredictions";
 import { useCorrectPredictions } from "../hooks/useCorrectPredictions";
+import { useUserPoints } from "../hooks/useUserPoints";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 export default function Home() {
@@ -77,6 +78,12 @@ export default function Home() {
     scorePredictions
   );
 
+  // Use database-stored points (preferred) with fallback to local calculation
+  const { points: databasePoints, loading: pointsLoading } =
+    useUserPoints(user);
+  const displayPoints =
+    databasePoints !== undefined ? databasePoints : totalCorrectPredictions;
+
   // Show loading while authentication is being checked
   if (authLoading) {
     return (
@@ -92,7 +99,7 @@ export default function Home() {
   if (loading && matches.length === 0) {
     return (
       <div className="min-h-screen bg-[#1a1a1a] text-white">
-        <Header predictions={totalCorrectPredictions} />
+        <Header predictions={displayPoints} />
         <main className="container mx-auto px-4 py-8">
           <LoadingSpinner text="Loading Premier League matches..." />
         </main>
@@ -103,7 +110,7 @@ export default function Home() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#1a1a1a] text-white">
-        <Header predictions={totalCorrectPredictions} />
+        <Header predictions={displayPoints} />
         <main className="container mx-auto px-4 py-8">
           <ErrorDisplay error={error} />
         </main>
@@ -113,7 +120,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
-      <Header predictions={totalCorrectPredictions} />
+      <Header predictions={displayPoints} />
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24">
         <WeekSelector

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/calculate-points",
+      "schedule": "0 */2 * * *"
+    }
+  ]
+}

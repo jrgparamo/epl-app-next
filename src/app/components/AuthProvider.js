@@ -63,6 +63,17 @@ export function AuthProvider({ children }) {
     return { error };
   };
 
+  const refreshUser = async () => {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (!error) {
+      setUser(user);
+    }
+    return { user, error };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -72,6 +83,7 @@ export function AuthProvider({ children }) {
         signUpWithEmail,
         signInWithMagicLink,
         signOut,
+        refreshUser,
       }}
     >
       {children}
