@@ -4,5 +4,10 @@
       "path": "/api/cron/calculate-points",
       "schedule": "0 */2 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "src/app/api/cron/calculate-points/route.js": {
+      "maxDuration": 60
+    }
+  }
 }
