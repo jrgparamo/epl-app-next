@@ -33,21 +33,10 @@ export async function GET() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // Fetch leaderboard from user_points_summary view
+    // Fetch leaderboard from user_points_summary view (without profiles join)
     const { data: leaderboardData, error } = await supabase
       .from("user_points_summary")
-      .select(
-        `
-        user_id,
-        total_points,
-        matches_predicted,
-        correct_predictions,
-        profiles:user_id (
-          display_name,
-          email
-        )
-      `
-      )
+      .select("user_id, total_points, matches_predicted, correct_predictions")
       .order("total_points", { ascending: false })
       .limit(50);
 
@@ -57,20 +46,49 @@ export async function GET() {
       return NextResponse.json(getMockLeaderboard(user));
     }
 
+    // Get user metadata for display names
+    let usersDisplayData = {};
+    try {
+      // Try to get from profiles table first
+      if (leaderboardData.length > 0) {
+        const userIds = leaderboardData.map((entry) => entry.user_id);
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, display_name, email")
+          .in("id", userIds);
+
+        if (profilesData) {
+          usersDisplayData = profilesData.reduce((acc, profile) => {
+            acc[profile.id] = {
+              display_name: profile.display_name,
+              email: profile.email,
+            };
+            return acc;
+          }, {});
+        }
+      }
+    } catch (profileError) {
+      console.warn("Could not fetch from profiles table:", profileError);
+      // Fallback: we'll use auth metadata for current user only
+    }
+
     // Transform the data for the frontend
-    const leaderboard = leaderboardData.map((entry, index) => ({
-      user_id: entry.user_id,
-      display_name:
-        entry.profiles?.display_name ||
-        entry.profiles?.email?.split("@")[0] ||
-        "Anonymous",
-      email: entry.profiles?.email,
-      predictions: entry.total_points,
-      matches_predicted: entry.matches_predicted,
-      correct_predictions: entry.correct_predictions,
-      rank: index + 1,
-      isCurrentUser: user?.id === entry.user_id,
-    }));
+    const leaderboard = leaderboardData.map((entry, index) => {
+      const profileData = usersDisplayData[entry.user_id];
+      return {
+        user_id: entry.user_id,
+        display_name:
+          profileData?.display_name ||
+          profileData?.email?.split("@")[0] ||
+          "Anonymous",
+        email: profileData?.email,
+        predictions: entry.total_points,
+        matches_predicted: entry.matches_predicted,
+        correct_predictions: entry.correct_predictions,
+        rank: index + 1,
+        isCurrentUser: user?.id === entry.user_id,
+      };
+    });
 
     // If current user is not in the top 50, add them at the end
     if (user && !leaderboard.some((entry) => entry.user_id === user.id)) {

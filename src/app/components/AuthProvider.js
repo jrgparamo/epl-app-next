@@ -25,8 +25,30 @@ export function AuthProvider({ children }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
+      const newUser = session?.user ?? null;
+      setUser(newUser);
       setLoading(false);
+
+      // Auto-sync profile when user signs in
+      if (event === "SIGNED_IN" && newUser) {
+        try {
+          await fetch("/api/profile/sync", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              userId: newUser.id,
+              email: newUser.email,
+              displayName:
+                newUser.user_metadata?.display_name ||
+                newUser.email?.split("@")[0],
+            }),
+          });
+        } catch (error) {
+          console.warn("Profile auto-sync failed:", error);
+        }
+      }
     });
 
     return () => subscription.unsubscribe();

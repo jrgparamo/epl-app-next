@@ -64,20 +64,19 @@ export function useUserPoints(user) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id, user?.email]);
 
-  // Fetch points when user changes
+  // Fetch points when user changes and set up periodic refresh
   useEffect(() => {
+    // Initial fetch
     fetchPoints();
-  }, [fetchPoints]);
 
-  // Refetch points periodically (every 5 minutes)
-  useEffect(() => {
+    // Set up interval for periodic refresh (every 5 minutes)
     if (!user?.id) return;
 
     const interval = setInterval(fetchPoints, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [fetchPoints, user]);
+  }, [fetchPoints, user?.id]);
 
   const refetchPoints = useCallback(() => {
     fetchPoints();

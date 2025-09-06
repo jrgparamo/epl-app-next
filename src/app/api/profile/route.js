@@ -118,6 +118,24 @@ export async function POST(request) {
       );
     }
 
+    // Also sync to profiles table for leaderboards
+    try {
+      await supabase.from("profiles").upsert(
+        {
+          id: userId,
+          email: user.email,
+          display_name: trimmedDisplayName,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "id",
+        }
+      );
+    } catch (profileError) {
+      console.warn("Profile table sync failed:", profileError);
+      // Don't fail the request if profile sync fails
+    }
+
     return NextResponse.json({
       user_id: data.user.id,
       email: data.user.email,
