@@ -303,7 +303,7 @@ export function CacheIndicator() {
 
   // In development, show full debug functionality with single button
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed right-4 z-50" style={{ bottom: "calc(1rem + 90px)" }}>
       <button
         onClick={handleButtonClick}
         className={`px-3 py-2 rounded-lg shadow-lg text-sm flex items-center gap-2 text-white ${
