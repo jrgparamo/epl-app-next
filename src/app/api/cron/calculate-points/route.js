@@ -16,7 +16,7 @@ export async function POST(request) {
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    console.log(`Using base URL: ${baseUrl}`);
+    console.log(`Using base URL: ${baseUrl}/api/matches?status=FINISHED`);
     const matchesResponse = await fetch(
       `${baseUrl}/api/matches?status=FINISHED`,
       {
@@ -25,7 +25,7 @@ export async function POST(request) {
         },
       }
     );
-
+    console.log("matches response", matchesResponse);
     if (!matchesResponse.ok) {
       throw new Error("Failed to fetch matches");
     }
