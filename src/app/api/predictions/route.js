@@ -35,7 +35,7 @@ export async function GET(request) {
 
     const supabase = await createSupabaseServerClient();
 
-    // Verify the user is authenticated and matches the requested userId
+    // Verify the user is authenticated and authorized to view the requested userId
     const {
       data: { user },
       error: authError,
@@ -45,7 +45,26 @@ export async function GET(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.id !== userId) {
+    // Support a global admin flag set in Supabase user metadata (user.user_metadata.is_admin)
+    let isAdmin =
+      user?.user_metadata?.is_admin === true ||
+      user?.user_metadata?.is_admin === "true";
+
+    // Also allow league admins (is_admin in league_members) to act as global admins
+    if (!isAdmin) {
+      const { data: adminMemberships, error: memErr } = await supabase
+        .from("league_members")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_admin", true)
+        .limit(1);
+
+      if (!memErr && adminMemberships && adminMemberships.length > 0) {
+        isAdmin = true;
+      }
+    }
+
+    if (!isAdmin && user.id !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -100,7 +119,7 @@ export async function POST(request) {
 
     const supabase = await createSupabaseServerClient();
 
-    // Verify the user is authenticated and matches the requested userId
+    // Verify the user is authenticated and authorized to save for the requested userId
     const {
       data: { user },
       error: authError,
@@ -110,7 +129,24 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.id !== userId) {
+    let isAdmin =
+      user?.user_metadata?.is_admin === true ||
+      user?.user_metadata?.is_admin === "true";
+
+    if (!isAdmin) {
+      const { data: adminMemberships, error: memErr } = await supabase
+        .from("league_members")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_admin", true)
+        .limit(1);
+
+      if (!memErr && adminMemberships && adminMemberships.length > 0) {
+        isAdmin = true;
+      }
+    }
+
+    if (!isAdmin && user.id !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -164,7 +200,7 @@ export async function DELETE(request) {
 
     const supabase = await createSupabaseServerClient();
 
-    // Verify the user is authenticated and matches the requested userId
+    // Verify the user is authenticated and authorized to delete the requested user's prediction
     const {
       data: { user },
       error: authError,
@@ -174,7 +210,24 @@ export async function DELETE(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (user.id !== userId) {
+    let isAdmin =
+      user?.user_metadata?.is_admin === true ||
+      user?.user_metadata?.is_admin === "true";
+
+    if (!isAdmin) {
+      const { data: adminMemberships, error: memErr } = await supabase
+        .from("league_members")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_admin", true)
+        .limit(1);
+
+      if (!memErr && adminMemberships && adminMemberships.length > 0) {
+        isAdmin = true;
+      }
+    }
+
+    if (!isAdmin && user.id !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -138,30 +138,6 @@ export default function LeagueLeaderboard({ leagueId }) {
         )}
       </div>
 
-      {/* League Stats */}
-      <div className="mt-6 p-4 bg-[#1a1a1a] rounded-lg">
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <div className="text-lg font-bold text-[#00c851]">
-              {leaderboard.reduce(
-                (sum, player) => sum + player.matches_predicted,
-                0
-              )}
-            </div>
-            <div className="text-sm text-[#b3b3b3]">Total Predictions</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold text-[#00c851]">
-              {leaderboard.reduce(
-                (sum, player) => sum + player.correct_predictions,
-                0
-              )}
-            </div>
-            <div className="text-sm text-[#b3b3b3]">Correct Predictions</div>
-          </div>
-        </div>
-      </div>
-
       <div className="mt-4 p-4 bg-[#1a1a1a] rounded-lg">
         <p className="text-sm text-[#b3b3b3] text-center">
           Rankings are updated after each matchday. Keep making predictions to

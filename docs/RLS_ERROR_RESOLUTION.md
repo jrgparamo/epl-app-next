@@ -96,3 +96,9 @@ This ensures that:
 - `auth.uid()` gets the current authenticated user's ID
 - Only rows where `user_id` matches the authenticated user are accessible
 - Works for SELECT, INSERT, UPDATE, and DELETE operations
+
+## Allow league admins to manage user_predictions
+
+Added migration `007_allow_league_admins_on_user_predictions.sql` which updates RLS for `user_predictions` so that owners (`auth.uid() = user_id`) and users who are admins in any league (`league_members.is_admin = true`) can SELECT/INSERT/UPDATE/DELETE rows.
+
+Apply this migration to your Supabase database to allow league-admins to manage other users' predictions from the app.

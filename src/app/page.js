@@ -46,6 +46,9 @@ export default function Home() {
       case "leaderboard":
         router.push("/leaderboard");
         break;
+      case "admin":
+        router.push("/admin");
+        break;
       case "matches":
         // Already on matches page, do nothing or scroll to top
         window.scrollTo({ top: 0, behavior: "smooth" });
