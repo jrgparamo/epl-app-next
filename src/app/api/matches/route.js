@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import apiCache from "@/lib/api-cache";
 
 const API_BASE_URL = "https://api.football-data.org/v4";
-const API_KEY = process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY;
+// Prefer a server-only secret; fall back to NEXT_PUBLIC for compatibility
+const API_KEY =
+  process.env.FOOTBALL_DATA_API_KEY ||
+  process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY;
 const PREMIER_LEAGUE_ID = 2021;
 
 // Cache for 30 minutes (1800 seconds)
@@ -27,13 +30,13 @@ export async function GET(request) {
       cacheKey,
       async () => {
         console.log(`🌐 Making API call for ${cacheKey}`);
-        let endpoint = `/competitions/${PREMIER_LEAGUE_ID}/matches`;
-        if (matchday) {
-          endpoint += `?matchday=${matchday}`;
-        }
-        if (status) {
-          endpoint += `?status=${status}`;
-        }
+        // Build query params safely
+        const params = new URLSearchParams();
+        if (matchday) params.set("matchday", matchday);
+        if (status) params.set("status", status);
+        const endpoint = `/competitions/${PREMIER_LEAGUE_ID}/matches${
+          params.toString() ? `?${params.toString()}` : ""
+        }`;
 
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
           headers: {
@@ -41,7 +44,16 @@ export async function GET(request) {
           },
         });
 
+        console.log("response status", response.status);
+
         if (!response.ok) {
+          // Capture body for better diagnostics
+          const bodyText = await response
+            .text()
+            .catch(() => "<unreadable body>");
+          console.error(
+            `Football-data API error: ${response.status} ${response.statusText} - ${bodyText}`
+          );
           throw new Error(
             `API request failed: ${response.status} ${response.statusText}`
           );
