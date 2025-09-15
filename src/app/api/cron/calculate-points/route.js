@@ -6,6 +6,7 @@ export async function POST(request) {
   try {
     // Verify the request is from authorized source
     const authHeader = request.headers.get("authorization");
+    // Use server-only CRON_SECRET
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -25,8 +26,15 @@ export async function POST(request) {
         },
       }
     );
-    console.log("matches response", matchesResponse);
+
+    console.log("matches response status", matchesResponse.status);
     if (!matchesResponse.ok) {
+      const bodyText = await matchesResponse
+        .text()
+        .catch(() => "<unreadable body>");
+      console.error(
+        `Failed to fetch matches: ${matchesResponse.status} ${matchesResponse.statusText} - ${bodyText}`
+      );
       throw new Error("Failed to fetch matches");
     }
 
