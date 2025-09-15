@@ -11,6 +11,7 @@ const PREMIER_LEAGUE_ID = 2021;
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const matchday = searchParams.get("matchday");
+  const status = searchParams.get("status");
 
   if (!API_KEY) {
     return NextResponse.json(
@@ -20,7 +21,7 @@ export async function GET(request) {
   }
 
   try {
-    const cacheKey = `matches-${matchday || "all"}`;
+    const cacheKey = `matches-${matchday || status || "all"}`;
 
     const data = await apiCache.get(
       cacheKey,
@@ -29,6 +30,9 @@ export async function GET(request) {
         let endpoint = `/competitions/${PREMIER_LEAGUE_ID}/matches`;
         if (matchday) {
           endpoint += `?matchday=${matchday}`;
+        }
+        if (status) {
+          endpoint += `?status=${status}`;
         }
 
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
