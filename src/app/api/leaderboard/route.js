@@ -1,185 +1,103 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth-helpers";
 
-async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        get(name) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name, value, options) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name, options) {
-          cookieStore.set({ name, value: "", ...options });
-        },
-      },
-    }
-  );
-}
+const TOP_N = 50;
 
 export async function GET() {
+  const currentUser = await getSessionUser();
+
   try {
-    const supabase = await createSupabaseServerClient();
+    // Top-N by total points. Groups over `user_points` and joins user info
+    // in a follow-up query.
+    const grouped = await prisma.userPoints.groupBy({
+      by: ["userId"],
+      _sum: { pointsEarned: true },
+      orderBy: { _sum: { pointsEarned: "desc" } },
+      take: TOP_N,
+    });
 
-    // Get current user to include in leaderboard
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const userIds = grouped.map((g) => g.userId);
+    const [correctCounts, distinctMatches, users] = await Promise.all([
+      prisma.userPoints.groupBy({
+        by: ["userId"],
+        where: { userId: { in: userIds }, pointsEarned: { gt: 0 } },
+        _count: { _all: true },
+      }),
+      prisma.userPoints.findMany({
+        where: { userId: { in: userIds } },
+        distinct: ["userId", "matchId"],
+        select: { userId: true, matchId: true },
+      }),
+      prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, email: true, displayName: true },
+      }),
+    ]);
 
-    // Fetch leaderboard from user_points_summary view (without profiles join)
-    const { data: leaderboardData, error } = await supabase
-      .from("user_points_summary")
-      .select("user_id, total_points, matches_predicted, correct_predictions")
-      .order("total_points", { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error("Error fetching leaderboard:", error);
-      // Fallback to mock data if database fails
-      return NextResponse.json(getMockLeaderboard(user));
+    const correctMap = new Map(
+      correctCounts.map((r) => [r.userId, r._count._all]),
+    );
+    const matchesMap = new Map();
+    for (const row of distinctMatches) {
+      matchesMap.set(row.userId, (matchesMap.get(row.userId) ?? 0) + 1);
     }
+    const userMap = new Map(users.map((u) => [u.id, u]));
 
-    // Get user metadata for display names
-    let usersDisplayData = {};
-    try {
-      // Try to get from profiles table first
-      if (leaderboardData.length > 0) {
-        const userIds = leaderboardData.map((entry) => entry.user_id);
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("id, display_name, email")
-          .in("id", userIds);
-
-        if (profilesData) {
-          usersDisplayData = profilesData.reduce((acc, profile) => {
-            acc[profile.id] = {
-              display_name: profile.display_name,
-              email: profile.email,
-            };
-            return acc;
-          }, {});
-        }
-      }
-    } catch (profileError) {
-      console.warn("Could not fetch from profiles table:", profileError);
-      // Fallback: we'll use auth metadata for current user only
-    }
-
-    // Transform the data for the frontend
-    const leaderboard = leaderboardData.map((entry, index) => {
-      const profileData = usersDisplayData[entry.user_id];
+    const leaderboard = grouped.map((row, index) => {
+      const u = userMap.get(row.userId);
       return {
-        user_id: entry.user_id,
-        display_name:
-          profileData?.display_name ||
-          profileData?.email?.split("@")[0] ||
-          "Anonymous",
-        email: profileData?.email,
-        predictions: entry.total_points,
-        matches_predicted: entry.matches_predicted,
-        correct_predictions: entry.correct_predictions,
+        user_id: row.userId,
+        display_name: u?.displayName || u?.email?.split("@")[0] || "Anonymous",
+        email: u?.email ?? null,
+        predictions: row._sum.pointsEarned ?? 0,
+        matches_predicted: matchesMap.get(row.userId) ?? 0,
+        correct_predictions: correctMap.get(row.userId) ?? 0,
         rank: index + 1,
-        isCurrentUser: user?.id === entry.user_id,
+        isCurrentUser: currentUser?.id === row.userId,
       };
     });
 
-    // If current user is not in the top 50, add them at the end
-    if (user && !leaderboard.some((entry) => entry.user_id === user.id)) {
-      const { data: currentUserData } = await supabase
-        .from("user_points_summary")
-        .select("total_points, matches_predicted, correct_predictions")
-        .eq("user_id", user.id)
-        .single();
+    // Append current user at the tail if they're outside the top N.
+    if (currentUser && !leaderboard.some((e) => e.user_id === currentUser.id)) {
+      const [meAgg, meCorrect, meDistinct, meUser] = await Promise.all([
+        prisma.userPoints.aggregate({
+          where: { userId: currentUser.id },
+          _sum: { pointsEarned: true },
+        }),
+        prisma.userPoints.count({
+          where: { userId: currentUser.id, pointsEarned: { gt: 0 } },
+        }),
+        prisma.userPoints.findMany({
+          where: { userId: currentUser.id },
+          distinct: ["matchId"],
+          select: { matchId: true },
+        }),
+        prisma.user.findUnique({
+          where: { id: currentUser.id },
+          select: { email: true, displayName: true },
+        }),
+      ]);
 
-      if (currentUserData) {
-        leaderboard.push({
-          user_id: user.id,
-          display_name:
-            user.user_metadata?.display_name ||
-            user.email?.split("@")[0] ||
-            "You",
-          email: user.email,
-          predictions: currentUserData.total_points,
-          matches_predicted: currentUserData.matches_predicted,
-          correct_predictions: currentUserData.correct_predictions,
-          rank: null, // Will be calculated based on actual rank
-          isCurrentUser: true,
-        });
-      }
+      leaderboard.push({
+        user_id: currentUser.id,
+        display_name:
+          meUser?.displayName || meUser?.email?.split("@")[0] || "You",
+        email: meUser?.email ?? null,
+        predictions: meAgg._sum.pointsEarned ?? 0,
+        matches_predicted: meDistinct.length,
+        correct_predictions: meCorrect,
+        rank: null,
+        isCurrentUser: true,
+      });
     }
 
     return NextResponse.json(leaderboard);
   } catch (error) {
-    console.error("API error:", error);
-    // Return mock data on error
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return NextResponse.json(getMockLeaderboard(user));
+    console.error("GET /api/leaderboard error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch leaderboard" },
+      { status: 500 },
+    );
   }
-}
-
-function getMockLeaderboard(user) {
-  // For now, return mock data with the real user's display name if available
-  const mockData = [
-    {
-      user_id: "mock-1",
-      display_name: "Jorge",
-      email: "jorge@example.com",
-      predictions: 25,
-    },
-    {
-      user_id: "mock-2",
-      display_name: "Ricardo",
-      email: "ricardo@example.com",
-      predictions: 23,
-    },
-    {
-      user_id: "mock-3",
-      display_name: "Eric",
-      email: "eric@example.com",
-      predictions: 20,
-    },
-    {
-      user_id: "mock-4",
-      display_name: "Rob",
-      email: "rob@example.com",
-      predictions: 18,
-    },
-    {
-      user_id: "mock-5",
-      display_name: "Ray",
-      email: "ray@example.com",
-      predictions: 15,
-    },
-  ];
-
-  // Add current user if authenticated
-  if (user) {
-    const userDisplayName =
-      user.user_metadata?.display_name || user.email?.split("@")[0] || "You";
-    mockData.push({
-      user_id: user.id,
-      display_name: userDisplayName,
-      email: user.email,
-      predictions: 0, // TODO: Get actual predictions from database
-      isCurrentUser: true,
-    });
-  }
-
-  const leaderboard = mockData
-    .sort((a, b) => b.predictions - a.predictions)
-    .map((user, index) => ({
-      ...user,
-      rank: index + 1,
-    }));
-
-  return leaderboard;
 }

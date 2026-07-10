@@ -1,78 +1,74 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth-helpers";
 
-async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        get(name) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name, value, options) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name, options) {
-          cookieStore.set({ name, value: "", ...options });
-        },
-      },
-    }
-  );
-}
-
+/**
+ * With Auth.js + Prisma adapter, the User row is created automatically on
+ * first sign-in, so this endpoint's original job (creating a `profiles` row)
+ * is mostly redundant.
+ *
+ * We keep it as a compatibility shim that ensures `displayName` is set from
+ * the local-part of the email if it's still null. The client hook
+ * `useProfileSync` calls this after sign-in.
+ */
 export async function POST(request) {
+  let body;
   try {
-    const supabase = await createSupabaseServerClient();
-    const { userId, email, displayName } = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
-    // Get current user to verify authorization
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+  const { userId, displayName } = body ?? {};
 
-    if (authError || !user || user.id !== userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, response } = await requireUser();
+  if (response) return response;
+
+  if (userId && user.id !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    // Only set displayName if the user doesn't already have one — never
+    // overwrite an existing value here.
+    const existing = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, displayName: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Upsert profile (insert if not exists, update if exists)
-    const { data, error } = await supabase
-      .from("profiles")
-      .upsert(
-        {
-          id: userId,
-          email: email,
-          display_name: displayName,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "id",
-        }
-      )
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Profile sync error:", error);
-      return NextResponse.json(
-        { error: "Failed to sync profile" },
-        { status: 500 }
-      );
+    let updatedDisplayName = existing.displayName;
+    if (!existing.displayName && displayName) {
+      const trimmed =
+        typeof displayName === "string"
+          ? displayName.trim().slice(0, 50)
+          : null;
+      if (trimmed) {
+        const updated = await prisma.user.update({
+          where: { id: user.id },
+          data: { displayName: trimmed },
+          select: { displayName: true },
+        });
+        updatedDisplayName = updated.displayName;
+      }
     }
 
     return NextResponse.json({
       success: true,
-      profile: data,
+      profile: {
+        id: existing.id,
+        email: existing.email,
+        display_name: updatedDisplayName,
+      },
     });
   } catch (error) {
-    console.error("API error:", error);
+    console.error("POST /api/profile/sync error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: "Failed to sync profile" },
+      { status: 500 },
     );
   }
 }

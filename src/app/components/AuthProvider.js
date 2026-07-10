@@ -1,115 +1,134 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+
+import { createContext, useCallback, useContext, useMemo } from "react";
+import {
+  SessionProvider,
+  useSession,
+  signIn as nextAuthSignIn,
+  signOut as nextAuthSignOut,
+} from "next-auth/react";
+import { signIn as webauthnSignIn } from "next-auth/webauthn";
 
 const AuthContext = createContext({});
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+/**
+ * Flatten an Auth.js session user into a plain object exposed to consumers.
+ */
+function adaptUser(sessionUser) {
+  if (!sessionUser) return null;
+  return {
+    id: sessionUser.id,
+    email: sessionUser.email,
+    displayName: sessionUser.displayName ?? null,
+    isAdmin: Boolean(sessionUser.isAdmin),
+  };
+}
 
-  useEffect(() => {
-    // Get initial user (authenticated)
-    const getInitialUser = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      setUser(error ? null : user);
-      setLoading(false);
-    };
+function InnerAuthProvider({ children }) {
+  const { data: session, status, update } = useSession();
 
-    getInitialUser();
+  const user = useMemo(() => adaptUser(session?.user), [session?.user]);
+  const loading = status === "loading";
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const newUser = session?.user ?? null;
-      setUser(newUser);
-      setLoading(false);
-
-      // Auto-sync profile when user signs in
-      if (event === "SIGNED_IN" && newUser) {
-        try {
-          await fetch("/api/profile/sync", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              userId: newUser.id,
-              email: newUser.email,
-              displayName:
-                newUser.user_metadata?.display_name ||
-                newUser.email?.split("@")[0],
-            }),
-          });
-        } catch (error) {
-          console.warn("Profile auto-sync failed:", error);
-        }
+  // Magic-link sign-in via Auth.js Nodemailer provider.
+  const signInWithMagicLink = useCallback(async (email) => {
+    try {
+      const result = await nextAuthSignIn("nodemailer", {
+        email,
+        redirect: false,
+      });
+      if (result?.error) {
+        return { data: null, error: new Error(result.error) };
       }
-    });
-
-    return () => subscription.unsubscribe();
+      return { data: result, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
   }, []);
 
-  const signInWithEmail = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
-  };
-
-  const signUpWithEmail = async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { data, error };
-  };
-
-  const signInWithMagicLink = async (email) => {
-    const { data, error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    return { data, error };
-  };
-
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  };
-
-  const refreshUser = async () => {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-    if (!error) {
-      setUser(user);
+  // Passkey authentication (existing user).
+  // WebAuthn requires the dedicated signIn from next-auth/webauthn so the
+  // browser can run the credential ceremony (navigator.credentials.get).
+  const signInWithPasskey = useCallback(async () => {
+    try {
+      const result = await webauthnSignIn("passkey", { redirect: false });
+      if (result?.error) {
+        return { data: null, error: new Error(result.error) };
+      }
+      return { data: result, error: null };
+    } catch (error) {
+      return { data: null, error };
     }
-    return { user, error };
-  };
+  }, []);
 
+  // Passkey registration for the currently signed-in user.
+  // Auth.js v5 exposes `signIn("passkey", { action: "register" })` for this,
+  // but it must come from next-auth/webauthn (not next-auth/react).
+  const registerPasskey = useCallback(async () => {
+    try {
+      const result = await webauthnSignIn("passkey", {
+        action: "register",
+        redirect: false,
+      });
+      if (result?.error) {
+        return { data: null, error: new Error(result.error) };
+      }
+      await update();
+      return { data: result, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }, [update]);
+
+  const signOut = useCallback(async () => {
+    try {
+      await nextAuthSignOut({ redirect: false });
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  }, []);
+
+  // Legacy API: re-fetch the session. Auth.js `update()` reloads from the
+  // DB when using the database session strategy.
+  const refreshUser = useCallback(async () => {
+    try {
+      const updated = await update();
+      return { user: adaptUser(updated?.user), error: null };
+    } catch (error) {
+      return { user: null, error };
+    }
+  }, [update]);
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      signInWithMagicLink,
+      signInWithPasskey,
+      registerPasskey,
+      signOut,
+      refreshUser,
+    }),
+    [
+      user,
+      loading,
+      signInWithMagicLink,
+      signInWithPasskey,
+      registerPasskey,
+      signOut,
+      refreshUser,
+    ],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function AuthProvider({ children }) {
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        signInWithEmail,
-        signUpWithEmail,
-        signInWithMagicLink,
-        signOut,
-        refreshUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <SessionProvider>
+      <InnerAuthProvider>{children}</InnerAuthProvider>
+    </SessionProvider>
   );
 }
 

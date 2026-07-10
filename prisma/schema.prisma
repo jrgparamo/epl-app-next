@@ -1,0 +1,208 @@
+// Prisma schema — EPL predictions app
+// Auth.js v5 models + application models
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Connection URLs live in `prisma.config.ts` (Prisma ORM v7+).
+// Prisma 7 requires a driver adapter — see `src/lib/prisma.js`.
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// Auth.js v5 models
+// https://authjs.dev/getting-started/adapters/prisma
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+
+  // App-level fields (folded into User)
+  displayName String? @db.VarChar(100)
+  isAdmin     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  authenticators Authenticator[]
+
+  predictions    Prediction[]
+  points         UserPoints[]
+  leaguesCreated League[]       @relation("LeagueCreator")
+  memberships    LeagueMember[]
+
+  @@map("users")
+}
+
+model Account {
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? @db.Text
+  access_token             String? @db.Text
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? @db.Text
+  session_state            String?
+  refresh_token_expires_in Int?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// WebAuthn / Passkeys
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+  @@map("authenticators")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Application models
+// ─────────────────────────────────────────────────────────────
+
+model Prediction {
+  id         String   @id @default(cuid())
+  userId     String
+  matchId    String
+  homeScore  Int
+  awayScore  Int
+  confidence Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, matchId])
+  @@index([userId, matchId])
+  @@index([createdAt])
+  @@map("user_predictions")
+}
+
+enum PredictionType {
+  result
+  exact_score
+}
+
+model UserPoints {
+  id                 String         @id @default(cuid())
+  userId             String
+  matchId            String
+  pointsEarned       Int            @default(0)
+  predictionType     PredictionType
+  homeScorePredicted Int?
+  awayScorePredicted Int?
+  homeScoreActual    Int?
+  awayScoreActual    Int?
+  calculatedAt       DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, matchId, predictionType])
+  @@index([userId])
+  @@index([matchId])
+  @@index([calculatedAt])
+  @@map("user_points")
+}
+
+model League {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(100)
+  description String?
+  joinCode    String   @unique @db.VarChar(10)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isActive    Boolean  @default(true)
+  maxMembers  Int      @default(100)
+
+  createdBy User           @relation("LeagueCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members   LeagueMember[]
+
+  @@index([joinCode])
+  @@index([createdById])
+  @@map("leagues")
+}
+
+model LeagueMember {
+  id       String   @id @default(cuid())
+  leagueId String
+  userId   String
+  joinedAt DateTime @default(now())
+  isAdmin  Boolean  @default(false)
+
+  league League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([leagueId, userId])
+  @@index([leagueId])
+  @@index([userId])
+  @@map("league_members")
+}
+
+model CronLog {
+  id        String   @id @default(cuid())
+  jobName   String
+  status    String
+  message   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([jobName, createdAt])
+  @@map("cron_logs")
+}
+
+/// Simple counter-based rate limit rows. One row per (key, windowStart)
+/// bucket; when the window rolls over a new row is created.
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+  @@map("rate_limits")
+}

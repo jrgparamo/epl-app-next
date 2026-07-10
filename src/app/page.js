@@ -78,12 +78,11 @@ export default function Home() {
   const { correctPredictions, totalCorrectPredictions } = useCorrectPredictions(
     user,
     matches,
-    scorePredictions
+    scorePredictions,
   );
 
   // Use database-stored points (preferred) with fallback to local calculation
-  const { points: databasePoints, loading: pointsLoading } =
-    useUserPoints(user);
+  const { points: databasePoints } = useUserPoints(user);
   const displayPoints =
     databasePoints !== undefined ? databasePoints : totalCorrectPredictions;
 
