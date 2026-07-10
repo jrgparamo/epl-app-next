@@ -8,17 +8,11 @@ import LeagueManager from "../components/LeagueManager";
 import LeagueLeaderboard from "../components/LeagueLeaderboard";
 import { useAuth } from "../components/AuthProvider";
 import { useCorrectPredictions } from "../../hooks/useCorrectPredictions";
-import { useLeaderboard } from "../../hooks/useLeaderboard";
 
 export default function LeaderboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { totalCorrectPredictions } = useCorrectPredictions(user, [], {});
-  // const {
-  //   leaderboard,
-  //   loading: leaderboardLoading,
-  //   error: leaderboardError,
-  // } = useLeaderboard();
 
   const [selectedLeagueId, setSelectedLeagueId] = useState(null);
   const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(false);
@@ -139,10 +133,10 @@ export default function LeaderboardPage() {
                             player.rank === 1
                               ? "bg-yellow-500 text-black"
                               : player.rank === 2
-                              ? "bg-gray-400 text-black"
-                              : player.rank === 3
-                              ? "bg-orange-400 text-black"
-                              : "bg-[#404040] text-white"
+                                ? "bg-gray-400 text-black"
+                                : player.rank === 3
+                                  ? "bg-orange-400 text-black"
+                                  : "bg-[#404040] text-white"
                           }`}
                         >
                           {player.rank}
