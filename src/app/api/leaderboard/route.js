@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth-helpers";
 
+export const dynamic = "force-dynamic";
+
 const TOP_N = 50;
 
 export async function GET() {

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser, isEffectiveAdmin } from "@/lib/auth-helpers";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const user = await getSessionUser();
   if (!user) {
