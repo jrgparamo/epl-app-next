@@ -105,6 +105,39 @@ Any Postgres URL works if you'd rather self-host — set `DATABASE_URL`
 manually. Prisma 7 requires the `@prisma/adapter-pg` driver adapter, which is
 already wired in `src/lib/prisma.js`.
 
+### Database Tables Reference
+
+The schema lives in `prisma/schema.prisma` and creates the following tables. Use this list to identify any tables that may no longer be in active use.
+
+#### Auth.js Tables (managed automatically by Auth.js v5)
+
+| Table | Model | Purpose |
+|---|---|---|
+| `users` | `User` | Core user record. Stores identity (email, name, avatar) plus app-specific fields: `displayName` (shown in leaderboards) and `isAdmin` (global admin flag). Central hub — all other models relate back to this table. |
+| `accounts` | `Account` | External OAuth/provider accounts linked to a user. Stores provider tokens (`access_token`, `refresh_token`, `id_token`). Supports multiple providers per user. |
+| `sessions` | `Session` | Active database sessions. Required by the passkey (WebAuthn) provider — session strategy must be `"database"`. Rows expire and are cleaned up by Auth.js. |
+| `verification_tokens` | `VerificationToken` | Short-lived tokens for magic-link emails. Created when a sign-in email is sent and consumed (deleted) when the user clicks the link. |
+| `authenticators` | `Authenticator` | WebAuthn / passkey credentials registered per device. Stores the public key, credential ID, device type, and transport metadata. |
+
+#### Application Tables
+
+| Table | Model | Purpose |
+|---|---|---|
+| `user_predictions` | `Prediction` | A user's score prediction for a specific EPL match (`homeScore`, `awayScore`, `confidence`). Enforces one prediction per `(userId, matchId)` pair. Predictions lock when a match kicks off. |
+| `user_points` | `UserPoints` | Points awarded after a match finishes. One row per `(userId, matchId, predictionType)`. Records both predicted and actual scores. `predictionType` is either `result` (1 pt for correct outcome) or `exact_score` (3 pts for correct scoreline). Populated by a cron job via `/api/cron/calculate-points`. |
+| `leagues` | `League` | User-created private prediction groups. Each league has a unique short `joinCode` used to invite members, an optional description, a member cap (`maxMembers`, default 100), and an `isActive` flag. |
+| `league_members` | `LeagueMember` | Join table connecting `users` to `leagues`. Tracks when each user joined and whether they hold league-admin rights. A unique constraint on `(leagueId, userId)` prevents duplicate memberships. |
+| `cron_logs` | `CronLog` | Audit trail for background jobs. Each row captures the job name, status string, optional message, and arbitrary JSON metadata. Used primarily to monitor the points-calculation cron runs. |
+| `rate_limits` | `RateLimit` | Counter-based rate limiting buckets. One row per `(key, windowStart)` time window. Currently used to cap magic-link send attempts (5 per email address per 15 minutes) — see `src/lib/rate-limit.js`. |
+
+#### Potentially Unused / Legacy
+
+The following are worth checking if they are still actively queried in the codebase:
+
+- **`authenticators`** — Only relevant if passkey sign-in is enabled and in use. If only magic-link is used, this table will remain empty.
+- **`accounts`** — Populated by OAuth providers. If no OAuth provider (e.g. Google) is configured, this table will be empty but is still required by Auth.js.
+- **`rate_limits`** — Verify `src/lib/rate-limit.js` is still wired into the magic-link flow; if the rate-limiting middleware was removed, this table is unused.
+
 ## Step 4: Authentication (Auth.js)
 
 Sign-in uses passwordless magic-link email + passkeys. See

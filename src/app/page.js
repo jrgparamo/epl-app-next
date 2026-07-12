@@ -86,12 +86,11 @@ export default function Home() {
   const displayPoints =
     databasePoints !== undefined ? databasePoints : totalCorrectPredictions;
 
-  // Show loading while authentication is being checked
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#1a1a1a] text-white">
+      <div className="min-h-screen bg-background">
         <Header predictions={0} />
-        <main className="container mx-auto px-4 py-8">
+        <main className="max-w-md mx-auto px-4 py-8">
           <LoadingSpinner text="Loading..." />
         </main>
       </div>
@@ -100,10 +99,10 @@ export default function Home() {
 
   if (loading && matches.length === 0) {
     return (
-      <div className="min-h-screen bg-[#1a1a1a] text-white">
+      <div className="min-h-screen bg-background">
         <Header predictions={displayPoints} />
-        <main className="container mx-auto px-4 py-8">
-          <LoadingSpinner text="Loading Premier League matches..." />
+        <main className="max-w-md mx-auto px-4 py-8">
+          <LoadingSpinner text="Loading matches..." />
         </main>
       </div>
     );
@@ -111,9 +110,9 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#1a1a1a] text-white">
+      <div className="min-h-screen bg-background">
         <Header predictions={displayPoints} />
-        <main className="container mx-auto px-4 py-8">
+        <main className="max-w-md mx-auto px-4 py-6">
           <ErrorDisplay error={error} />
         </main>
       </div>
@@ -121,10 +120,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-white">
+    <div className="min-h-screen bg-background">
       <Header predictions={displayPoints} />
 
-      <main className="max-w-4xl mx-auto px-4 py-6 pb-24">
+      <main className="max-w-md mx-auto px-3 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <WeekSelector
           currentWeek={currentWeek}
           onWeekChange={handleWeekChange}
@@ -132,7 +131,7 @@ export default function Home() {
           totalWeeks={38}
         />
 
-        <div className="mb-6">
+        <div className="space-y-2 mb-4">
           <MatchdayHeader
             currentWeek={currentWeek}
             currentMatchday={currentMatchday}
@@ -165,15 +164,8 @@ export default function Home() {
         )}
 
         {!loading && matches.length === 0 && <EmptyState />}
-
-        <div className="mt-8 text-center">
-          <div className="text-xs text-gray-500">
-            Premier League prediction app powered by Football Data API
-          </div>
-        </div>
       </main>
 
-      {/* Cache indicator for development and debugging */}
       {process.env.NODE_ENV === "development" && <CacheIndicator />}
 
       <BottomNavigation

@@ -1,89 +1,70 @@
+"use client";
+
+import { useRef, useEffect } from "react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
 export default function WeekSelector({
   currentWeek,
   onWeekChange,
   totalWeeks = 38,
   currentMatchday = 1,
 }) {
-  // Generate array of weeks based on current matchday and surrounding weeks
-  const getVisibleWeeks = () => {
-    const start = Math.max(1, currentMatchday - 2);
-    const end = Math.min(totalWeeks, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  };
+  const selectedRef = useRef(null);
 
-  const weeks = getVisibleWeeks();
-
-  const getWeekButtonStyle = (week) => {
-    const isSelected = currentWeek === week;
-    const isPast = week < currentMatchday;
-    const isCurrent = week === currentMatchday;
-
-    if (isSelected) {
-      return "bg-green-600 text-white shadow-lg";
+  // Auto-scroll selected matchday into center view on mount and when selection changes
+  useEffect(() => {
+    if (selectedRef.current) {
+      selectedRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
     }
-
-    if (isPast) {
-      return "bg-gray-600 text-gray-300 hover:bg-gray-500";
-    }
-
-    if (isCurrent) {
-      return "bg-blue-600 text-white hover:bg-blue-500";
-    }
-
-    // upcoming
-    return "bg-gray-700 text-gray-300 hover:bg-gray-600";
-  };
-
-  const getWeekLabel = (week) => {
-    const isPast = week < currentMatchday;
-    const isCurrent = week === currentMatchday;
-
-    if (isPast) return `MD ${week} ✓`;
-    if (isCurrent) return `MD ${week} ●`;
-    return `MD ${week}`;
-  };
+  }, [currentWeek]);
 
   return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-semibold text-white">Matchday Selection</h2>
-        <span className="text-sm text-gray-400">
-          Current: MD {currentMatchday}
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <h2 className="text-sm font-semibold text-foreground">Matchday</h2>
+        <span className="text-xs text-muted-foreground">
+          MD {currentMatchday} current
         </span>
       </div>
-      <div className="flex items-center space-x-2 overflow-x-auto pb-2">
-        {currentMatchday > 3 && (
-          <button
-            onClick={() => onWeekChange(Math.max(1, currentMatchday - 5))}
-            className="px-3 py-2 rounded-lg text-sm bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
-          >
-            ←
-          </button>
-        )}
 
-        {weeks.map((week) => (
-          <button
-            key={week}
-            onClick={() => onWeekChange(week)}
-            className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 ${getWeekButtonStyle(
-              week
-            )}`}
-          >
-            {getWeekLabel(week)}
-          </button>
-        ))}
+      <ScrollArea className="w-full">
+        <div className="flex gap-1.5 pb-2 px-1">
+          {Array.from({ length: totalWeeks }, (_, i) => {
+            const week = i + 1;
+            const isSelected = currentWeek === week;
+            const isCurrent = week === currentMatchday;
+            const isPast = week < currentMatchday;
 
-        {currentMatchday < totalWeeks - 2 && (
-          <button
-            onClick={() =>
-              onWeekChange(Math.min(totalWeeks, currentMatchday + 5))
-            }
-            className="px-3 py-2 rounded-lg text-sm bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
-          >
-            →
-          </button>
-        )}
-      </div>
+            return (
+              <Button
+                key={week}
+                ref={isSelected ? selectedRef : undefined}
+                variant={isSelected ? "default" : "outline"}
+                size="sm"
+                onClick={() => onWeekChange(week)}
+                className={cn(
+                  "shrink-0 h-9 min-w-[3rem] rounded-full text-xs font-medium transition-all touch-manipulation",
+                  isSelected && "shadow-md",
+                  !isSelected && isCurrent && "border-primary text-primary font-semibold",
+                  !isSelected && isPast && "opacity-50"
+                )}
+              >
+                {isPast && !isSelected ? `${week}` : week}
+                {isCurrent && !isSelected && (
+                  <span className="ml-0.5 inline-block w-1 h-1 rounded-full bg-primary" />
+                )}
+              </Button>
+            );
+          })}
+        </div>
+        <ScrollBar orientation="horizontal" className="h-1.5" />
+      </ScrollArea>
     </div>
   );
 }

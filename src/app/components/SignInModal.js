@@ -2,6 +2,20 @@
 
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { Separator } from "@/components/ui/separator";
+import { RiFingerprint2Line } from "@remixicon/react";
 
 export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
   const { signInWithMagicLink, signInWithPasskey } = useAuth();
@@ -9,7 +23,7 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("info"); // "success" | "error" | "info"
+  const [messageType, setMessageType] = useState("info");
 
   const resetForm = () => {
     setEmail("");
@@ -19,16 +33,17 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
     setPasskeyLoading(false);
   };
 
-  const handleClose = () => {
-    resetForm();
-    onClose();
+  const handleOpenChange = (open) => {
+    if (!open) {
+      resetForm();
+      onClose();
+    }
   };
 
   const handleMagicLink = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
-
     try {
       const { error } = await signInWithMagicLink(email);
       if (error) throw error;
@@ -48,7 +63,7 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
     try {
       const { error } = await signInWithPasskey();
       if (error) throw error;
-      handleClose();
+      handleOpenChange(false);
       if (onSignInSuccess) onSignInSuccess();
     } catch (error) {
       setMessage(error.message || "Passkey sign-in failed.");
@@ -58,132 +73,89 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
     }
   };
 
-  if (!isOpen) return null;
-
-  const messageClasses =
-    messageType === "success"
-      ? "bg-[#000] bg-opacity-20 text-white border border-[#00c851] border-opacity-30"
-      : "bg-[#ff4444] bg-opacity-20 text-white border border-[#ff4444] border-opacity-30";
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
-        onClick={handleClose}
-      />
+    <Drawer open={isOpen} onOpenChange={handleOpenChange} showSwipeHandle={true}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle className="text-base">Sign in</DrawerTitle>
+          <DrawerDescription>
+            No password needed — new accounts are created automatically.
+          </DrawerDescription>
+        </DrawerHeader>
 
-      {/* Modal */}
-      <div className="relative bg-[#2d2d2d] border border-[#404040] rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Sign in</h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-white transition-colors"
-            aria-label="Close"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
+        <div className="px-4 pb-2 space-y-4">
+          <form onSubmit={handleMagicLink} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email webauthn"
+                placeholder="you@example.com"
+                className="h-11"
               />
-            </svg>
-          </button>
-        </div>
+            </div>
 
-        <form onSubmit={handleMagicLink} className="space-y-4">
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-300 mb-1"
+            {message && (
+              <p
+                className={
+                  messageType === "success"
+                    ? "text-xs text-prediction-correct"
+                    : "text-xs text-destructive"
+                }
+              >
+                {message}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full h-11"
+              disabled={loading || passkeyLoading}
             >
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email webauthn"
-              className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#404040] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00c851] focus:border-transparent"
-              placeholder="you@example.com"
-            />
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Spinner size="sm" />
+                  Sending…
+                </span>
+              ) : (
+                "Send magic link"
+              )}
+            </Button>
+          </form>
+
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <Separator className="flex-1" />
           </div>
 
-          {message && (
-            <div className={`p-3 rounded-lg text-sm ${messageClasses}`}>
-              {message}
-            </div>
-          )}
-
-          <button
-            type="submit"
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11 gap-2"
+            onClick={handlePasskey}
             disabled={loading || passkeyLoading}
-            className="w-full bg-[#00c851] hover:bg-[#00a844] disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg transition-colors font-medium"
           >
-            {loading ? (
-              <span className="flex items-center justify-center">
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                Sending…
-              </span>
+            {passkeyLoading ? (
+              <>
+                <Spinner size="sm" />
+                Waiting for passkey…
+              </>
             ) : (
-              "Send magic link"
+              <>
+                <RiFingerprint2Line className="h-4 w-4" />
+                Sign in with a passkey
+              </>
             )}
-          </button>
-        </form>
-
-        <div className="flex items-center gap-3 my-5 text-xs text-gray-500">
-          <div className="flex-1 border-t border-[#404040]" />
-          <span>or</span>
-          <div className="flex-1 border-t border-[#404040]" />
+          </Button>
         </div>
 
-        <button
-          type="button"
-          onClick={handlePasskey}
-          disabled={loading || passkeyLoading}
-          className="w-full bg-[#1a1a1a] hover:bg-[#252525] disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg transition-colors font-medium border border-[#404040] flex items-center justify-center gap-2"
-        >
-          {passkeyLoading ? (
-            <>
-              <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-              Waiting for passkey…
-            </>
-          ) : (
-            <>
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 7a4 4 0 11-8 0 4 4 0 018 0zm-4 6a7 7 0 00-6.93 6.07M17 14l2 2m0 0l2-2m-2 2v-6"
-                />
-              </svg>
-              Sign in with a passkey
-            </>
-          )}
-        </button>
-
-        <div className="mt-5 text-center text-xs text-gray-400">
-          <p>
-            No password needed. New accounts are created automatically the first
-            time you sign in.
-          </p>
-        </div>
-      </div>
-    </div>
+        <DrawerFooter className="pt-2" />
+      </DrawerContent>
+    </Drawer>
   );
 }
