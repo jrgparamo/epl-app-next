@@ -1,3 +1,11 @@
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+// shadcn/ui utility — merges Tailwind classes safely
+export function cn(...inputs) {
+  return twMerge(clsx(inputs));
+}
+
 // Team utilities and mappings
 
 /**
@@ -12,6 +20,8 @@ const TEAM_LOGO_MAP = {
   Bournemouth: "bournemouth",
   "Brentford FC": "brentford",
   Brentford: "brentford",
+  Conventry: "coventry-city",
+  "Coventry City FC": "coventry-city",
   "Brighton & Hove Albion FC": "brighton",
   Brighton: "brighton",
   "Burnley FC": "burnley",
@@ -26,6 +36,8 @@ const TEAM_LOGO_MAP = {
   "Nottingham Forest": "forest",
   "Fulham FC": "fulham",
   Fulham: "fulham",
+  "Hull City AFC": "hull-city",
+  "Ipswich Town FC": "ipswich-town",
   "Leeds United FC": "leeds",
   "Leeds United": "leeds",
   "Leicester City FC": "leicester",

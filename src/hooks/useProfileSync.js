@@ -20,8 +20,7 @@ export function useProfileSync() {
           body: JSON.stringify({
             userId: user.id,
             email: user.email,
-            displayName:
-              user.user_metadata?.display_name || user.email?.split("@")[0],
+            displayName: user.displayName || user.email?.split("@")[0],
           }),
         });
 

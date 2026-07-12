@@ -9,7 +9,7 @@ import { useAuth } from "../components/AuthProvider";
 import { useCorrectPredictions } from "../../hooks/useCorrectPredictions";
 
 export default function AccountPage() {
-  const { user, signOut, loading, refreshUser } = useAuth();
+  const { user, signOut, loading, refreshUser, registerPasskey } = useAuth();
   const router = useRouter();
   const { totalCorrectPredictions } = useCorrectPredictions(user, [], {});
 
@@ -18,10 +18,14 @@ export default function AccountPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [passkeyMessage, setPasskeyMessage] = useState(null);
+  const [passkeyMessageType, setPasskeyMessageType] = useState("info");
+
   // Initialize display name directly from user auth data
   useEffect(() => {
     if (user) {
-      setDisplayName(user.user_metadata?.display_name || "");
+      setDisplayName(user.displayName || "");
     }
   }, [user]);
 
@@ -53,8 +57,7 @@ export default function AccountPage() {
         throw new Error(errorData.error || "Failed to update display name");
       }
 
-      // The user object will be updated by Supabase auth automatically
-      // Refresh the auth state to get updated metadata
+      // Refresh the session so `user.displayName` reflects the new value.
       await refreshUser();
 
       setIsEditing(false);
@@ -66,9 +69,27 @@ export default function AccountPage() {
   };
 
   const handleCancelEdit = () => {
-    setDisplayName(user?.user_metadata?.display_name || "");
+    setDisplayName(user?.displayName || "");
     setIsEditing(false);
     setSaveError(null);
+  };
+
+  const handleRegisterPasskey = async () => {
+    setPasskeyLoading(true);
+    setPasskeyMessage(null);
+    try {
+      const { error } = await registerPasskey();
+      if (error) throw error;
+      setPasskeyMessage(
+        "Passkey registered. You can use it to sign in next time.",
+      );
+      setPasskeyMessageType("success");
+    } catch (error) {
+      setPasskeyMessage(error.message || "Failed to register passkey.");
+      setPasskeyMessageType("error");
+    } finally {
+      setPasskeyLoading(false);
+    }
   };
   const handleNavigationChange = (tabId) => {
     switch (tabId) {
@@ -81,6 +102,9 @@ export default function AccountPage() {
       case "account":
         // Already on account page, do nothing or scroll to top
         window.scrollTo({ top: 0, behavior: "smooth" });
+        break;
+      case "admin":
+        router.push("/admin");
         break;
       default:
         break;
@@ -161,7 +185,7 @@ export default function AccountPage() {
                   ) : (
                     <div className="flex items-center justify-between">
                       <div className="text-lg">
-                        {user?.user_metadata?.display_name || "Not set"}
+                        {user?.displayName || "Not set"}
                       </div>
                       <button
                         onClick={() => setIsEditing(true)}
@@ -180,6 +204,34 @@ export default function AccountPage() {
                   <div className="text-lg text-[#00c851]">
                     {totalCorrectPredictions}
                   </div>
+                </div>
+
+                <div className="pt-4 border-t border-[#404040]">
+                  <label className="block text-sm font-medium text-[#b3b3b3] mb-2">
+                    Passkey
+                  </label>
+                  <p className="text-sm text-[#b3b3b3] mb-3">
+                    Register a passkey to sign in from this device without an
+                    email link.
+                  </p>
+                  <button
+                    onClick={handleRegisterPasskey}
+                    disabled={passkeyLoading}
+                    className="bg-[#404040] hover:bg-[#555555] disabled:bg-[#333333] text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                  >
+                    {passkeyLoading ? "Registering…" : "Register a passkey"}
+                  </button>
+                  {passkeyMessage && (
+                    <div
+                      className={`mt-3 text-sm ${
+                        passkeyMessageType === "success"
+                          ? "text-[#00c851]"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {passkeyMessage}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-[#404040]">

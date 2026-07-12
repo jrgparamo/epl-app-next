@@ -2,31 +2,37 @@
 
 import { useState } from "react";
 import HowToPlayModal from "./HowToPlayModal";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 export default function Header({ predictions = 0 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <>
-      <header className="bg-[#2d2d2d] border-b border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+      <header className="bg-card border-b border-border">
+        <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold text-green-400">Top Picks</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-400">Season Points</div>
-              <div className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                {predictions}
+            <h1 className="text-lg font-bold font-heading text-primary">
+              logo
+            </h1>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  Season Total
+                </span>
+                <Badge className="font-bold">{predictions}</Badge>
               </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
+              <Separator orientation="vertical" className="h-4" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground px-2 h-7"
                 onClick={() => setIsModalOpen(true)}
-                className="text-gray-400 hover:text-white transition-colors"
               >
                 How to play
-              </button>
+              </Button>
             </div>
           </div>
         </div>

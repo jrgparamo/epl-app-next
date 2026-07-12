@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../components/AuthProvider";
 import ProtectedRoute from "../components/ProtectedRoute";
 import Header from "../components/Header";
+import BottomNavigation from "../components/BottomNavigation";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorDisplay } from "../components/ErrorDisplay";
 
@@ -16,7 +18,27 @@ export default function AdminPage() {
 }
 
 function AdminContent() {
+  const router = useRouter();
   const { user } = useAuth();
+
+  const handleNavigationChange = (tabId) => {
+    switch (tabId) {
+      case "matches":
+        router.push("/");
+        break;
+      case "leaderboard":
+        router.push("/leaderboard");
+        break;
+      case "account":
+        router.push("/account");
+        break;
+      case "admin":
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        break;
+      default:
+        break;
+    }
+  };
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userPredictions, setUserPredictions] = useState({});
@@ -267,6 +289,10 @@ function AdminContent() {
           </div>
         </div>
       </div>
+      <BottomNavigation
+        activeTab="admin"
+        onTabChange={handleNavigationChange}
+      />
     </div>
   );
 }
