@@ -1,92 +1,131 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { calculateMatchPoints } from "@/lib/points";
 
-// This endpoint can be called by a cron job (e.g., Vercel Cron, GitHub Actions, or external service)
-// to automatically calculate points when matches finish
-export async function POST(request) {
+/**
+ * Cron entry point that recomputes points for all FINISHED matches.
+ *
+ * Vercel Cron sends a GET with `Authorization: Bearer <CRON_SECRET>`.
+ * We accept both GET (Vercel Cron) and POST (manual backfills) with the
+ * same auth check.
+ */
+async function runCron(request) {
+  const authHeader = request.headers.get("authorization");
+  if (
+    !process.env.CRON_SECRET ||
+    authHeader !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    // Verify the request is from authorized source
-    const authHeader = request.headers.get("authorization");
-    // Use server-only CRON_SECRET
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    await prisma.cronLog.create({
+      data: {
+        jobName: "cron_calculate_points",
+        status: "started",
+        message: "Fetching finished matches",
+      },
+    });
 
-    console.log("Starting automatic point calculation...");
-
-    // Fetch finished matches from the matches API
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    console.log(`Using base URL: ${baseUrl}/api/matches?status=FINISHED`);
+
     const matchesResponse = await fetch(
       `${baseUrl}/api/matches?status=FINISHED`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+      { headers: { "Content-Type": "application/json" } },
     );
 
-    console.log("matches response status", matchesResponse.status);
     if (!matchesResponse.ok) {
       const bodyText = await matchesResponse
         .text()
         .catch(() => "<unreadable body>");
-      console.error(
-        `Failed to fetch matches: ${matchesResponse.status} ${matchesResponse.statusText} - ${bodyText}`
-      );
+      await prisma.cronLog.create({
+        data: {
+          jobName: "cron_calculate_points",
+          status: "error",
+          message: `Failed to fetch matches: ${matchesResponse.status} ${matchesResponse.statusText} - ${bodyText}`,
+        },
+      });
       throw new Error("Failed to fetch matches");
     }
 
     const matchesData = await matchesResponse.json();
     const finishedMatches = matchesData.matches || [];
 
-    console.log(`Found ${finishedMatches.length} finished matches`);
+    let matchesProcessed = 0;
+    let totalPointsCalculated = 0;
 
-    // Calculate points for finished matches
-    const pointsResponse = await fetch(`${baseUrl}/api/points`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.CRON_SECRET}`,
-      },
-      body: JSON.stringify({
-        matches: finishedMatches,
-      }),
-    });
+    for (const match of finishedMatches) {
+      if (match?.status !== "FINISHED" || !match?.score?.fullTime) continue;
+      const { home, away } = match.score.fullTime;
 
-    if (!pointsResponse.ok) {
-      throw new Error("Failed to calculate points");
+      try {
+        const awarded = await calculateMatchPoints(
+          match.id,
+          Number(home),
+          Number(away),
+        );
+        totalPointsCalculated += awarded;
+        matchesProcessed += 1;
+
+        await prisma.cronLog.create({
+          data: {
+            jobName: "cron_calculate_points",
+            status: "processed_match",
+            message: `Match ${match.id} (${match.homeTeam?.shortName ?? "?"} ${home}-${away} ${match.awayTeam?.shortName ?? "?"}): ${awarded} points`,
+          },
+        });
+      } catch (matchError) {
+        console.error(`Error processing match ${match.id}:`, matchError);
+        await prisma.cronLog.create({
+          data: {
+            jobName: "cron_calculate_points",
+            status: "error_match",
+            message: `Error processing match ${match.id}: ${matchError.message}`,
+          },
+        });
+      }
     }
 
-    const pointsResult = await pointsResponse.json();
-
-    console.log("Point calculation completed:", pointsResult);
+    await prisma.cronLog.create({
+      data: {
+        jobName: "cron_calculate_points",
+        status: "completed",
+        message: `Completed: ${matchesProcessed} matches processed, ${totalPointsCalculated} total points calculated`,
+      },
+    });
 
     return NextResponse.json({
       success: true,
       message: "Automatic point calculation completed",
-      ...pointsResult,
+      matchesProcessed,
+      totalPointsCalculated,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Cron job error:", error);
+    try {
+      await prisma.cronLog.create({
+        data: {
+          jobName: "cron_calculate_points",
+          status: "error",
+          message: `Cron job failed: ${error.message}`,
+        },
+      });
+    } catch (logError) {
+      console.error("Failed to log cron error:", logError);
+    }
     return NextResponse.json(
       {
         error: "Failed to run automatic point calculation",
         message: error.message,
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// Health check endpoint
-export async function GET() {
-  return NextResponse.json({
-    status: "healthy",
-    service: "automatic-points-calculation",
-    timestamp: new Date().toISOString(),
-  });
-}
+export const GET = runCron;
+export const POST = runCron;

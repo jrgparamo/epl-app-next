@@ -1,4 +1,5 @@
 import MatchCard from "./MatchCard";
+import { Separator } from "@/components/ui/separator";
 import { formatMatchDate } from "../../lib/utils";
 
 export default function MatchList({
@@ -8,34 +9,33 @@ export default function MatchList({
 }) {
   // Group matches by date
   const groupedMatches = matches.reduce((groups, match) => {
-    // Use the formatted date from the API data
     const date = formatMatchDate(match.utcDate);
-    if (!groups[date]) {
-      groups[date] = [];
-    }
+    if (!groups[date]) groups[date] = [];
     groups[date].push(match);
     return groups;
   }, {});
 
-  // Get unique dates and sort them by the actual date
+  // Sort dates by actual UTC time
   const dates = Object.keys(groupedMatches).sort((a, b) => {
-    // Get the first match from each group to compare actual dates
-    const matchA = groupedMatches[a][0];
-    const matchB = groupedMatches[b][0];
-    return new Date(matchA.utcDate) - new Date(matchB.utcDate);
+    return (
+      new Date(groupedMatches[a][0].utcDate) -
+      new Date(groupedMatches[b][0].utcDate)
+    );
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {dates.map((date) => {
         const dayMatches = groupedMatches[date];
-
         return (
-          <div key={date} className="space-y-3">
-            <h3 className="text-lg font-semibold text-gray-300 border-b border-gray-700 pb-2">
-              {date}
-            </h3>
-            <div className="space-y-3">
+          <div key={date}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {date}
+              </span>
+              <Separator className="flex-1" />
+            </div>
+            <div className="space-y-2">
               {dayMatches.map((match) => (
                 <MatchCard
                   key={match.id}

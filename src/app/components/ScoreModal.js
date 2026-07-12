@@ -3,6 +3,14 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { getTeamLogo } from "../../lib/utils";
+import { cn } from "@/lib/utils";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 
 // Team color mappings
 const TEAM_COLORS = {
@@ -51,20 +59,13 @@ const TEAM_COLORS = {
   Wolves: "#FDB913",
 };
 
-const getTeamColor = (teamName) => {
-  return TEAM_COLORS[teamName] || "#666666";
-};
+const getTeamColor = (teamName) => TEAM_COLORS[teamName] || "#555555";
 
 const getContrastColor = (hexColor) => {
-  // Convert hex to RGB
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);
   const b = parseInt(hexColor.slice(5, 7), 16);
-
-  // Calculate luminance using standard formula
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-  // Use a more conservative threshold for better readability
   return luminance > 0.6 ? "#000000" : "#FFFFFF";
 };
 
@@ -82,229 +83,116 @@ export default function ScoreModal({
   useEffect(() => {
     if (isOpen) {
       setSelectedScore(currentScore);
-      setShowExtended(false); // Always start with compact view
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = "hidden";
-      // Add escape key listener
-      const handleEscapeKey = (event) => {
-        if (event.key === "Escape") {
-          onClose();
-        }
-      };
-      document.addEventListener("keydown", handleEscapeKey);
-
-      return () => {
-        document.body.style.overflow = "unset";
-        document.removeEventListener("keydown", handleEscapeKey);
-      };
+      setShowExtended(false);
     }
-  }, [isOpen, currentScore, onClose]);
+  }, [isOpen, currentScore]);
 
-  if (!isOpen) return null;
+  if (!team) return null;
 
   const teamColor = getTeamColor(team.name);
   const textColor = getContrastColor(teamColor);
-  const isLightTheme = textColor === "#000000";
+  const isLight = textColor === "#000000";
 
   const handleScoreSelect = (score) => {
     setSelectedScore(score);
-
-    // Add haptic feedback on mobile devices
-    if (navigator.vibrate) {
-      navigator.vibrate(50);
-    }
-
-    // Close modal with a slight delay for better UX
+    if (navigator.vibrate) navigator.vibrate(50);
     setTimeout(() => {
       onScoreSelect(score);
       onClose();
     }, 150);
   };
 
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
+    <Drawer
+      open={isOpen}
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      showSwipeHandle={true}
     >
-      <div
-        className="w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300"
-        style={{ backgroundColor: teamColor }}
-      >
-        {/* Header */}
-        <div className="p-6 text-center relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-xl font-bold hover:scale-110 transition-transform border"
-            style={{
-              backgroundColor: isLightTheme
-                ? "rgba(255,255,255,0.8)"
-                : "rgba(0,0,0,0.7)",
-              borderColor: isLightTheme
-                ? "rgba(0,0,0,0.2)"
-                : "rgba(255,255,255,0.3)",
-              color: isLightTheme ? "#000000" : "#FFFFFF",
-            }}
-          >
-            ×
-          </button>
-
-          <div className="w-16 h-16 mx-auto mb-4 relative flex items-center justify-center">
+      <DrawerContent>
+        {/* Team-colored header */}
+        <div
+          className="px-4 pt-4 pb-5 text-center"
+          style={{ backgroundColor: teamColor }}
+        >
+          <div className="w-14 h-14 mx-auto mb-3 relative flex items-center justify-center">
             <Image
               src={getTeamLogo(team.name)}
               alt={`${team.name} logo`}
-              width={64}
-              height={64}
+              width={56}
+              height={56}
               className="max-w-full max-h-full object-contain"
-              style={{
-                width: "auto",
-                height: "auto",
-                filter: isLightTheme ? "none" : "",
-              }}
-              onError={(e) => {
-                e.target.src = "/team-logos/default.svg";
-              }}
+              style={{ width: "auto", height: "auto" }}
+              onError={(e) => { e.target.src = "/team-logos/default.svg"; }}
             />
           </div>
-
-          <h2 className="text-xl font-bold mb-2" style={{ color: textColor }}>
+          <DrawerTitle
+            className="text-lg font-bold"
+            style={{ color: textColor }}
+          >
             {team.shortName || team.name}
-          </h2>
-          <p className="text-sm opacity-80" style={{ color: textColor }}>
-            Select score for {team.shortName || team.name}
-          </p>
+          </DrawerTitle>
+          <DrawerDescription
+            className="text-xs opacity-75 mt-0.5"
+            style={{ color: textColor }}
+          >
+            {matchInfo.homeTeam.shortName || matchInfo.homeTeam.name} vs{" "}
+            {matchInfo.awayTeam.shortName || matchInfo.awayTeam.name}
+          </DrawerDescription>
         </div>
 
-        {/* Score Grid */}
-        <div className="p-6 pt-0" style={{ backgroundColor: teamColor }}>
-          <div className="grid grid-cols-3 gap-3">
-            {/* Numbers 0-8 */}
-            {Array.from({ length: 9 }, (_, i) => (
+        {/* Score grid */}
+        <div className="p-4 overflow-y-auto">
+          <div className="grid grid-cols-3 gap-2.5">
+            {Array.from({ length: 10 }, (_, i) => (
               <button
                 key={i}
                 onClick={() => handleScoreSelect(i)}
-                className={`
-                  w-full h-14 sm:h-12 rounded-lg font-bold text-lg transition-all duration-200 transform active:scale-95 touch-manipulation border-2
-                  ${
-                    selectedScore === i
-                      ? "bg-white bg-opacity-95 scale-105 shadow-lg border-gray-400"
-                      : "bg-white bg-opacity-80 hover:bg-opacity-90 active:bg-opacity-95 hover:shadow-md border-gray-300 hover:border-gray-400"
-                  }
-                `}
-                style={{
-                  color: "#000000", // Always black text
-                  minHeight: "48px",
-                  WebkitTapHighlightColor: "transparent",
-                }}
+                className={cn(
+                  "h-14 rounded-xl font-bold text-lg transition-all duration-150 active:scale-95 touch-manipulation border-2",
+                  selectedScore === i
+                    ? "bg-primary text-primary-foreground border-primary scale-105 shadow-md"
+                    : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
+                )}
+                style={{ minHeight: "48px", WebkitTapHighlightColor: "transparent" }}
               >
                 {i}
               </button>
             ))}
 
-            {/* Empty cell when not extended */}
-            {!showExtended && <div></div>}
-
-            {/* Number 9 button */}
+            {/* +/− toggle */}
             <button
-              key={9}
-              onClick={() => handleScoreSelect(9)}
-              className={`
-                w-full h-14 sm:h-12 rounded-lg font-bold text-lg transition-all duration-200 transform active:scale-95 touch-manipulation border-2
-                ${
-                  selectedScore === 9
-                    ? "bg-white bg-opacity-95 scale-105 shadow-lg border-gray-400"
-                    : "bg-white bg-opacity-80 hover:bg-opacity-90 active:bg-opacity-95 hover:shadow-md border-gray-300 hover:border-gray-400"
-                }
-              `}
-              style={{
-                color: "#000000", // Always black text
-                minHeight: "48px",
-                WebkitTapHighlightColor: "transparent",
-              }}
+              onClick={() => setShowExtended((v) => !v)}
+              className={cn(
+                "h-14 rounded-xl font-bold text-lg transition-all duration-150 active:scale-95 touch-manipulation border-2",
+                showExtended
+                  ? "bg-muted text-muted-foreground border-border"
+                  : "bg-primary/20 text-primary border-primary/40 hover:bg-primary/30"
+              )}
+              style={{ minHeight: "48px", WebkitTapHighlightColor: "transparent" }}
             >
-              9
+              {showExtended ? "−" : "+"}
             </button>
 
-            {/* Plus button to show more numbers */}
-            {!showExtended && (
-              <button
-                onClick={() => setShowExtended(true)}
-                className="w-full h-14 sm:h-12 rounded-lg font-bold text-lg transition-all duration-200 transform active:scale-95 touch-manipulation border-2 bg-blue-500 bg-opacity-80 hover:bg-opacity-90 active:bg-opacity-95 hover:shadow-md border-blue-400 hover:border-blue-500"
-                style={{
-                  color: "#FFFFFF",
-                  minHeight: "48px",
-                  WebkitTapHighlightColor: "transparent",
-                }}
-              >
-                +
-              </button>
-            )}
-
-            {/* Additional numbers 10-15 when extended */}
+            {/* Extended scores 10–15 */}
             {showExtended &&
               Array.from({ length: 6 }, (_, i) => (
                 <button
                   key={i + 10}
                   onClick={() => handleScoreSelect(i + 10)}
-                  className={`
-                  w-full h-14 sm:h-12 rounded-lg font-bold text-lg transition-all duration-200 transform active:scale-95 touch-manipulation border-2
-                  ${
+                  className={cn(
+                    "h-14 rounded-xl font-bold text-lg transition-all duration-150 active:scale-95 touch-manipulation border-2",
                     selectedScore === i + 10
-                      ? "bg-white bg-opacity-95 scale-105 shadow-lg border-gray-400"
-                      : "bg-white bg-opacity-80 hover:bg-opacity-90 active:bg-opacity-95 hover:shadow-md border-gray-300 hover:border-gray-400"
-                  }
-                `}
-                  style={{
-                    color: "#000000", // Always black text
-                    minHeight: "48px",
-                    WebkitTapHighlightColor: "transparent",
-                  }}
+                      ? "bg-primary text-primary-foreground border-primary scale-105 shadow-md"
+                      : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
+                  )}
+                  style={{ minHeight: "48px", WebkitTapHighlightColor: "transparent" }}
                 >
                   {i + 10}
                 </button>
               ))}
-
-            {/* Collapse button when extended */}
-            {showExtended && (
-              <button
-                onClick={() => setShowExtended(false)}
-                className="w-full h-14 sm:h-12 rounded-lg font-bold text-lg transition-all duration-200 transform active:scale-95 touch-manipulation border-2 bg-gray-500 bg-opacity-80 hover:bg-opacity-90 active:bg-opacity-95 hover:shadow-md border-gray-400 hover:border-gray-500"
-                style={{
-                  color: "#FFFFFF",
-                  minHeight: "48px",
-                  WebkitTapHighlightColor: "transparent",
-                }}
-              >
-                −
-              </button>
-            )}
-          </div>
-
-          {/* Match Info */}
-          <div
-            className="mt-6 p-3 rounded-lg text-center text-sm border"
-            style={{
-              backgroundColor: isLightTheme
-                ? "rgba(255,255,255,0.3)"
-                : "rgba(0,0,0,0.3)",
-              borderColor: isLightTheme
-                ? "rgba(0,0,0,0.2)"
-                : "rgba(255,255,255,0.2)",
-              color: textColor,
-            }}
-          >
-            <div className="font-medium">
-              {matchInfo.homeTeam.shortName || matchInfo.homeTeam.name} vs{" "}
-              {matchInfo.awayTeam.shortName || matchInfo.awayTeam.name}
-            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </DrawerContent>
+    </Drawer>
   );
 }

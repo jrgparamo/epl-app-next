@@ -1,62 +1,73 @@
 "use client";
 
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { useIsMobile } from "@/hooks/useIsMobile";
+
 export default function HowToPlayModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
+  const isMobile = useIsMobile();
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1a1a1a] rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-white">How to play</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors text-xl"
-            >
-              ×
-            </button>
+  const content = (
+    <div className="px-6 pb-6 space-y-4">
+      <div className="bg-muted rounded-lg p-4">
+        <h4 className="font-semibold text-sm text-center mb-1">
+          Predict upcoming matches
+        </h4>
+        <p className="text-xs text-muted-foreground text-center">
+          You can edit your predictions until the match kicks off.
+        </p>
+      </div>
+
+      <div className="bg-muted rounded-lg p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-center">Scoring</h3>
+        <Separator />
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Correct outcome</p>
+            <p className="text-xs text-muted-foreground">Winner or draw</p>
           </div>
-
-          <div className="space-y-6">
-            <div className="bg-[#2d2d2d] rounded-lg p-6">
-              <h4 className="font-semibold text-white text-center mb-2">
-                Predict the upcoming matches
-              </h4>
-              <p className="text-white">
-                You can edit your predictions until the match kicks off.
-              </p>
-            </div>
-
-            <div className="bg-[#2d2d2d] rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-3 text-white text-center">
-                Scoring
-              </h3>
-              <div className="relative flex items-center justify-between mb-6">
-                <div className="flex flex-col gap-1">
-                  <h4 className="font-medium text-white">Correct outcome</h4>
-                  <p className="text-sm font-medium text-gray-400">
-                    Winner or draw
-                  </p>
-                </div>
-                <p className="justify-center text-green-400 text-center text-xs font-semibold">
-                  1 Point
-                </p>
-              </div>
-              <div className="relative flex items-center justify-between ">
-                <div className="flex flex-col gap-1">
-                  <h4 className="font-medium text-white">Exact score</h4>
-                  <p className="text-sm font-medium text-gray-400 w-33">
-                    Winner or draw with exact score
-                  </p>
-                </div>
-                <p className="justify-center text-green-400 text-center text-xs font-semibold">
-                  3 Points
-                </p>
-              </div>
-            </div>
+          <span className="text-sm font-bold text-prediction-correct">
+            1 pt
+          </span>
+        </div>
+        <Separator />
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Exact score</p>
+            <p className="text-xs text-muted-foreground">
+              Correct result + exact scoreline
+            </p>
           </div>
+          <span className="text-sm font-bold text-prediction-correct">
+            3 pts
+          </span>
         </div>
       </div>
     </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+        <SheetContent side="bottom" className="max-h-[80dvh] overflow-y-auto rounded-t-xl">
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="text-base">How to play</SheetTitle>
+          </SheetHeader>
+          {content}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent>
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-base">How to play</DialogTitle>
+        </DialogHeader>
+        {content}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -6,7 +6,7 @@ A modern Next.js application for predicting English Premier League match results
 
 - 🏆 **Real Premier League Data**: Live fixtures, results, and standings from Football Data API
 - 🎯 **Match Predictions**: Make score predictions on upcoming matches with points scoring system
-- 🔐 **User Authentication**: Secure login with Google OAuth via Supabase
+- 🔐 **User Authentication**: Passwordless sign-in via magic-link email and passkeys (Auth.js v5)
 - 📱 **Responsive Design**: Works perfectly on desktop and mobile
 - ⚡ **Real-time Updates**: Live match status and score updates
 - 🎨 **Modern UI**: Dark theme with Tailwind CSS
@@ -58,19 +58,22 @@ Create a `.env.local` file in the root directory:
 # Required: Football Data API
 NEXT_PUBLIC_FOOTBALL_DATA_API_KEY=your_football_data_api_key
 
-# Required: NextAuth
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_nextauth_secret
+# Required: Auth.js v5
+AUTH_SECRET=<run: openssl rand -base64 32>
+AUTH_URL=http://localhost:3000
 
-# Required: Supabase (for user data and predictions)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+# Required: Database (Prisma / PostgreSQL)
+DATABASE_URL=your_postgres_connection_string
 
-# Required: Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
+# Required: Magic-link email (SMTP)
+EMAIL_SERVER=smtp://user:password@smtp.example.com:587
+EMAIL_FROM="EPL App <noreply@example.com>"
+
+# Optional: Cron job authorization
+CRON_SECRET=your_cron_secret
 ```
+
+> See [SETUP.md](SETUP.md) for the full database provisioning steps and [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) for auth configuration details.
 
 ### 4. Get Your Football Data API Key
 
@@ -86,6 +89,16 @@ npm run dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) to see the app.
+
+## npm Scripts
+
+| Script        | Command                  | Description                                                                                                                                                   |
+| ------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dev`         | `next dev --turbopack`   | Starts the development server on `localhost:3000` using Turbopack for fast incremental builds. Use this during local development.                             |
+| `build`       | `next build --turbopack` | Compiles and optimizes the app for production using Turbopack. Must be run before `start`. Outputs to `.next/`.                                               |
+| `start`       | `next start`             | Serves the production build locally. Requires `build` to have been run first.                                                                                 |
+| `lint`        | `eslint`                 | Runs ESLint across the project to catch code quality and style issues.                                                                                        |
+| `postinstall` | `prisma generate`        | Runs automatically after every `npm install`. Generates the Prisma Client from `prisma/schema.prisma`, making the typed database client available to the app. |
 
 ## API Features
 
@@ -133,14 +146,17 @@ src/
 │   │   └── EmptyState.js           # Empty state component
 │   ├── api/
 │   │   ├── auth/
-│   │   │   └── [...nextauth]/      # NextAuth configuration
+│   │   │   └── [...nextauth]/      # Auth.js v5 configuration
 │   │   ├── cache/                  # Cache management API
 │   │   ├── cache-warmup/           # Cache warming API
+│   │   ├── cron/                   # Cron job endpoints (points calculation)
+│   │   ├── leagues/                # League management API
 │   │   ├── matchday/               # Current matchday API
 │   │   ├── matches/                # Matches data API
+│   │   ├── points/                 # User points API
 │   │   └── predictions/            # Predictions management API
 │   ├── auth/
-│   │   ├── callback/               # OAuth callback page
+│   │   ├── callback/               # Auth callback page
 │   │   └── signin/                 # Sign-in page
 │   └── page.js                     # Main application page (refactored)
 ├── hooks/
@@ -151,9 +167,11 @@ src/
 ├── lib/
 │   ├── api.js                      # Football Data API integration
 │   ├── api-cache.js                # API caching utilities
+│   ├── auth-helpers.js             # Server-side auth helpers (requireUser, requireAdmin)
 │   ├── cache.js                    # General caching utilities
 │   ├── predictions.js              # Prediction service with offline support
-│   ├── supabase.js                 # Supabase database client
+│   ├── prisma.js                   # Prisma client singleton (with driver adapter)
+│   ├── rate-limit.js               # Magic-link rate limiting (uses rate_limits table)
 │   ├── utils.js                    # Helper functions and team mappings
 │   └── warmup.js                   # Cache warming utilities
 ├── docs/                           # Documentation files
@@ -163,6 +181,15 @@ src/
 ## Key Features Explained
 
 ### Recent Improvements ✨
+
+**Database & Auth Migration (July 2026)**
+
+- **Prisma ORM**: Replaced Supabase client with Prisma v7 + `@prisma/adapter-pg` for type-safe, schema-driven database access
+- **Auth.js v5**: Replaced Google OAuth / Supabase Auth with passwordless magic-link email and WebAuthn passkeys
+- **Prisma Schema**: 10 tables defined in `prisma/schema.prisma` covering auth, predictions, points, leagues, cron audit logs, and rate limiting — see [SETUP.md](SETUP.md#database-tables-reference) for the full table reference
+- **Server-side Points**: Points calculated and stored in `user_points` table via cron job; no longer computed client-side from localStorage
+- **Private Leagues**: Users can create and join private prediction leagues with unique join codes and per-league leaderboards
+- **Rate Limiting**: Magic-link sends capped at 5 per email per 15 minutes via the `rate_limits` table
 
 **Code Refactoring (August 2025)**
 
@@ -185,7 +212,8 @@ src/
 - **Scoring System**:
   - 1 point for correct result (win/draw/loss)
   - 3 points total for exact score prediction (includes the 1 point for correct result)
-- Predictions are saved to Supabase database with local backup
+- Predictions are persisted to PostgreSQL via Prisma (`user_predictions` table) with local backup
+- Points are calculated server-side and stored in the `user_points` table after matches finish
 - **Offline Support**: Predictions saved locally and synced when connection restored
 - **Smart Retry**: Failed syncs automatically retry in background
 - Predictions lock when matches start
@@ -201,10 +229,11 @@ src/
 
 ### Authentication
 
-- Google OAuth integration via Supabase
-- Persistent user sessions
-- User-specific prediction storage
-- Secure authentication flow
+- Passwordless sign-in via **magic-link email** and **passkeys (WebAuthn)** using Auth.js v5
+- No passwords — new accounts are created automatically on first sign-in
+- Database session strategy (required for passkey support)
+- Global admin role (`isAdmin`) and per-league admin roles
+- Magic-link rate limiting: 5 sends per email address per 15 minutes
 
 ### Custom Hooks Architecture
 
@@ -239,11 +268,11 @@ src/
 - **Next.js 15**: React framework with App Router and Turbopack
 - **React 18**: Component library with hooks and context
 - **Tailwind CSS**: Utility-first CSS framework
-- **NextAuth.js**: Authentication library with Google OAuth
-- **Supabase**: Backend-as-a-Service for database and authentication
+- **Auth.js v5** (`next-auth@beta`): Passwordless authentication — magic-link email + WebAuthn passkeys
+- **Prisma ORM v7**: Type-safe database client with `@prisma/adapter-pg` driver adapter
+- **PostgreSQL**: Relational database (provisioned via Vercel Prisma integration or self-hosted)
 - **Football Data API**: Premier League data source
 - **Custom Hooks**: Modular state management and business logic
-- **Service Workers**: Offline support and background sync
 
 ## Browser Support
 
