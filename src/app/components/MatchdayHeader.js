@@ -1,38 +1,30 @@
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+
 export function MatchdayHeader({
   currentWeek,
   currentMatchday,
   loading,
   matches,
 }) {
-  const getMatchdayStatus = () => {
+  const getStatusBadge = () => {
     if (currentWeek < currentMatchday) {
-      return (
-        <span className="ml-2 text-sm bg-gray-600 px-2 py-1 rounded">
-          Completed
-        </span>
-      );
+      return <Badge variant="secondary">Completed</Badge>;
     }
     if (currentWeek > currentMatchday) {
-      return (
-        <span className="ml-2 text-sm bg-blue-600 px-2 py-1 rounded">
-          Upcoming
-        </span>
-      );
+      return <Badge variant="outline">Upcoming</Badge>;
     }
-    return (
-      <span className="ml-2 text-sm bg-green-600 px-2 py-1 rounded">
-        Current
-      </span>
-    );
+    return <Badge>Current</Badge>;
   };
 
   return (
     <div className="flex items-center justify-between mb-4">
-      <h2 className="text-xl font-semibold">
-        Matchday {currentWeek}
-        {getMatchdayStatus()}
-      </h2>
-      <div className="text-sm text-gray-400">
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl font-semibold">Matchday {currentWeek}</h2>
+        {getStatusBadge()}
+      </div>
+      <div className="text-sm text-muted-foreground">
         {loading && "Loading..."}
         {!loading && matches.length > 0 && `${matches.length} matches`}
       </div>

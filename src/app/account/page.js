@@ -103,6 +103,9 @@ export default function AccountPage() {
         // Already on account page, do nothing or scroll to top
         window.scrollTo({ top: 0, behavior: "smooth" });
         break;
+      case "admin":
+        router.push("/admin");
+        break;
       default:
         break;
     }
