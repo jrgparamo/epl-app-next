@@ -25,10 +25,8 @@ function TeamLogo({ name, size = 40 }) {
       <Image
         src={getTeamLogo(name)}
         alt={`${name} logo`}
-        width={size}
-        height={size}
-        className="max-w-full max-h-full object-contain"
-        style={{ width: "auto", height: "auto" }}
+        fill
+        className="object-contain"
         onError={(e) => {
           e.target.src = "/team-logos/default.svg";
         }}
