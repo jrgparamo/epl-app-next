@@ -158,7 +158,11 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
 
   if (isMobile) {
     return (
-      <Drawer open={isOpen} onOpenChange={handleOpenChange} showSwipeHandle={true}>
+      <Drawer
+        open={isOpen}
+        onOpenChange={handleOpenChange}
+        showSwipeHandle={true}
+      >
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle className="text-base">Sign in</DrawerTitle>
