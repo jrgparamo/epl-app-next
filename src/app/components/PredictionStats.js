@@ -11,13 +11,14 @@ export function PredictionStats({ user, correctPredictions }) {
       <CardContent className="py-3 px-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">Matchday correct</p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Badge className="bg-prediction-correct/20 text-prediction-correct border-prediction-correct/30 border font-bold text-sm px-2.5">
               {correctPredictions}
             </Badge>
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              1pt result · 3pts exact
-            </span>
+            <div className="hidden sm:flex flex-col leading-tight">
+              <span className="text-xs text-muted-foreground">1 pt result</span>
+              <span className="text-xs text-muted-foreground">3 pts exact</span>
+            </div>
           </div>
         </div>
       </CardContent>

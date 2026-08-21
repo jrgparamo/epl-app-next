@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import HowToPlayModal from "./HowToPlayModal";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +15,19 @@ export default function Header({ predictions = 0 }) {
       <header className="bg-card border-b border-border">
         <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold font-heading text-primary">
-              logo
-            </h1>
+            <div className="logo">
+              <Image
+                src={"/logo/epl-app-next.png"}
+                alt={"epl app logo"}
+                width={48}
+                height={50}
+                loading="eager"
+                className="object-contain h-auto w-auto"
+                onError={(e) => {
+                  e.target.src = "/logo/epl-next-logo.png";
+                }}
+              />
+            </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">
@@ -24,7 +35,7 @@ export default function Header({ predictions = 0 }) {
                 </span>
                 <Badge className="font-bold">{predictions}</Badge>
               </div>
-              <Separator orientation="vertical" className="h-4" />
+              <Separator orientation="vertical" className="h-8" />
               <Button
                 variant="ghost"
                 size="sm"

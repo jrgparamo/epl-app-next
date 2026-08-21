@@ -1,7 +1,17 @@
 "use client";
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -15,7 +25,7 @@ export default function HowToPlayModal({ isOpen, onClose }) {
           Predict upcoming matches
         </h4>
         <p className="text-xs text-muted-foreground text-center">
-          You can edit your predictions until the match kicks off.
+          You can edit your predictions until kick-off.
         </p>
       </div>
 
@@ -49,8 +59,16 @@ export default function HowToPlayModal({ isOpen, onClose }) {
 
   if (isMobile) {
     return (
-      <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <SheetContent side="bottom" className="max-h-[80dvh] overflow-y-auto rounded-t-xl">
+      <Sheet
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+      >
+        <SheetContent
+          side="bottom"
+          className="max-h-[80dvh] overflow-y-auto rounded-t-xl"
+        >
           <SheetHeader className="text-left pb-2">
             <SheetTitle className="text-base">How to play</SheetTitle>
           </SheetHeader>
@@ -61,7 +79,12 @@ export default function HowToPlayModal({ isOpen, onClose }) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent>
         <DialogHeader className="pb-2">
           <DialogTitle className="text-base">How to play</DialogTitle>
