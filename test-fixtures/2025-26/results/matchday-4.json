@@ -1,0 +1,226 @@
+{
+  "season": "2025",
+  "matchday": 4,
+  "matches": [
+    {
+      "id": 537817,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-13T11:30:00Z",
+      "homeTeam": {
+        "name": "Arsenal FC",
+        "shortName": "Arsenal",
+        "tla": "ARS"
+      },
+      "awayTeam": {
+        "name": "Nottingham Forest FC",
+        "shortName": "Nottingham",
+        "tla": "NOT"
+      },
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 0
+        }
+      }
+    },
+    {
+      "id": 537815,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-13T14:00:00Z",
+      "homeTeam": {
+        "name": "AFC Bournemouth",
+        "shortName": "Bournemouth",
+        "tla": "BOU"
+      },
+      "awayTeam": {
+        "name": "Brighton & Hove Albion FC",
+        "shortName": "Brighton Hove",
+        "tla": "BHA"
+      },
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        }
+      }
+    },
+    {
+      "id": 537816,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-13T14:00:00Z",
+      "homeTeam": {
+        "name": "Crystal Palace FC",
+        "shortName": "Crystal Palace",
+        "tla": "CRY"
+      },
+      "awayTeam": {
+        "name": "Sunderland AFC",
+        "shortName": "Sunderland",
+        "tla": "SUN"
+      },
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        }
+      }
+    },
+    {
+      "id": 537820,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-13T14:00:00Z",
+      "homeTeam": {
+        "name": "Everton FC",
+        "shortName": "Everton",
+        "tla": "EVE"
+      },
+      "awayTeam": {
+        "name": "Aston Villa FC",
+        "shortName": "Aston Villa",
+        "tla": "AVL"
+      },
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        }
+      }
+    },
+    {
+      "id": 537821,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-13T14:00:00Z",
+      "homeTeam": {
+        "name": "Fulham FC",
+        "shortName": "Fulham",
+        "tla": "FUL"
+      },
+      "awayTeam": {
+        "name": "Leeds United FC",
+        "shortName": "Leeds United",
+        "tla": "LEE"
+      },
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 0
+        }
+      }
+    },
+    {
+      "id": 537823,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-13T14:00:00Z",
+      "homeTeam": {
+        "name": "Newcastle United FC",
+        "shortName": "Newcastle",
+        "tla": "NEW"
+      },
+      "awayTeam": {
+        "name": "Wolverhampton Wanderers FC",
+        "shortName": "Wolverhampton",
+        "tla": "WOL"
+      },
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 0
+        }
+      }
+    },
+    {
+      "id": 537824,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-13T16:30:00Z",
+      "homeTeam": {
+        "name": "West Ham United FC",
+        "shortName": "West Ham",
+        "tla": "WHU"
+      },
+      "awayTeam": {
+        "name": "Tottenham Hotspur FC",
+        "shortName": "Tottenham",
+        "tla": "TOT"
+      },
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 3
+        }
+      }
+    },
+    {
+      "id": 537818,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-13T19:00:00Z",
+      "homeTeam": {
+        "name": "Brentford FC",
+        "shortName": "Brentford",
+        "tla": "BRE"
+      },
+      "awayTeam": {
+        "name": "Chelsea FC",
+        "shortName": "Chelsea",
+        "tla": "CHE"
+      },
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 2
+        }
+      }
+    },
+    {
+      "id": 537819,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-14T13:00:00Z",
+      "homeTeam": {
+        "name": "Burnley FC",
+        "shortName": "Burnley",
+        "tla": "BUR"
+      },
+      "awayTeam": {
+        "name": "Liverpool FC",
+        "shortName": "Liverpool",
+        "tla": "LIV"
+      },
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 1
+        }
+      }
+    },
+    {
+      "id": 537822,
+      "matchday": 4,
+      "status": "FINISHED",
+      "utcDate": "2025-09-14T15:30:00Z",
+      "homeTeam": {
+        "name": "Manchester City FC",
+        "shortName": "Man City",
+        "tla": "MCI"
+      },
+      "awayTeam": {
+        "name": "Manchester United FC",
+        "shortName": "Man United",
+        "tla": "MUN"
+      },
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 0
+        }
+      }
+    }
+  ]
+}

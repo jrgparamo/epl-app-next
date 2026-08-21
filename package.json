@@ -7,6 +7,14 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "points:calc": "node scripts/calculate-points.mjs",
+    "results:fetch": "node --env-file=.env.test scripts/fetch-results.mjs",
+    "test:expected": "node --env-file=.env.test scripts/compute-expected.mjs",
+    "test:points": "node --env-file=.env.test scripts/verify-points.mjs",
+    "db:test:migrate": "node --env-file=.env.test node_modules/.bin/prisma migrate deploy",
+    "db:test:studio": "node --env-file=.env.test node_modules/.bin/prisma studio",
+    "db:test:seed": "node --env-file=.env.test prisma/seed-test.mjs",
+    "dev:test": "node scripts/dev-test.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

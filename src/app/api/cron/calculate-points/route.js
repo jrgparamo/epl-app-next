@@ -7,7 +7,8 @@ import { calculateMatchPoints } from "@/lib/points";
  *
  * Vercel Cron sends a GET with `Authorization: Bearer <CRON_SECRET>`.
  * We accept both GET (Vercel Cron) and POST (manual backfills) with the
- * same auth check.
+ * same auth check. A POST body of `{ matches: [...] }` scores those exact
+ * matches instead of fetching live results — used for local/offline testing.
  */
 async function runCron(request) {
   const authHeader = request.headers.get("authorization");
@@ -18,40 +19,59 @@ async function runCron(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Test/backfill override: POST { matches: [...] } scores the supplied
+  // matches instead of fetching live finished matches from the API.
+  let overrideMatches = null;
+  if (request.method === "POST") {
+    try {
+      const body = await request.json();
+      if (Array.isArray(body?.matches)) overrideMatches = body.matches;
+    } catch {
+      // No/invalid JSON body — fall back to the live fetch below.
+    }
+  }
+
   try {
     await prisma.cronLog.create({
       data: {
         jobName: "cron_calculate_points",
         status: "started",
-        message: "Fetching finished matches",
+        message: overrideMatches
+          ? `Scoring ${overrideMatches.length} supplied matches`
+          : "Fetching finished matches",
       },
     });
 
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    let finishedMatches;
+    if (overrideMatches) {
+      finishedMatches = overrideMatches;
+    } else {
+      const baseUrl = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    const matchesResponse = await fetch(
-      `${baseUrl}/api/matches?status=FINISHED`,
-      { headers: { "Content-Type": "application/json" } },
-    );
+      const matchesResponse = await fetch(
+        `${baseUrl}/api/matches?status=FINISHED`,
+        { headers: { "Content-Type": "application/json" } },
+      );
 
-    if (!matchesResponse.ok) {
-      const bodyText = await matchesResponse
-        .text()
-        .catch(() => "<unreadable body>");
-      await prisma.cronLog.create({
-        data: {
-          jobName: "cron_calculate_points",
-          status: "error",
-          message: `Failed to fetch matches: ${matchesResponse.status} ${matchesResponse.statusText} - ${bodyText}`,
-        },
-      });
-      throw new Error("Failed to fetch matches");
+      if (!matchesResponse.ok) {
+        const bodyText = await matchesResponse
+          .text()
+          .catch(() => "<unreadable body>");
+        await prisma.cronLog.create({
+          data: {
+            jobName: "cron_calculate_points",
+            status: "error",
+            message: `Failed to fetch matches: ${matchesResponse.status} ${matchesResponse.statusText} - ${bodyText}`,
+          },
+        });
+        throw new Error("Failed to fetch matches");
+      }
+
+      const matchesData = await matchesResponse.json();
+      finishedMatches = matchesData.matches || [];
     }
-
-    const matchesData = await matchesResponse.json();
-    const finishedMatches = matchesData.matches || [];
 
     let matchesProcessed = 0;
     let totalPointsCalculated = 0;
