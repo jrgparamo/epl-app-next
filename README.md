@@ -92,13 +92,23 @@ Visit [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## npm Scripts
 
-| Script        | Command                  | Description                                                                                                                                                   |
-| ------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dev`         | `next dev --turbopack`   | Starts the development server on `localhost:3000` using Turbopack for fast incremental builds. Use this during local development.                             |
-| `build`       | `next build --turbopack` | Compiles and optimizes the app for production using Turbopack. Must be run before `start`. Outputs to `.next/`.                                               |
-| `start`       | `next start`             | Serves the production build locally. Requires `build` to have been run first.                                                                                 |
-| `lint`        | `eslint`                 | Runs ESLint across the project to catch code quality and style issues.                                                                                        |
-| `postinstall` | `prisma generate`        | Runs automatically after every `npm install`. Generates the Prisma Client from `prisma/schema.prisma`, making the typed database client available to the app. |
+| Script            | Command                                                             | Description                                                                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dev`             | `next dev --turbopack`                                              | Starts the development server on `localhost:3000` using Turbopack for fast incremental builds. Use this during local development.                                                                      |
+| `build`           | `next build --turbopack`                                            | Compiles and optimizes the app for production using Turbopack. Must be run before `start`. Outputs to `.next/`.                                                                                        |
+| `start`           | `next start`                                                        | Serves the production build locally. Requires `build` to have been run first.                                                                                                                          |
+| `lint`            | `eslint`                                                            | Runs ESLint across the project to catch code quality and style issues.                                                                                                                                 |
+| `points:calc`     | `node scripts/calculate-points.mjs`                                 | Manually triggers the points-calculation cron by POSTing to `/api/cron/calculate-points`. Supports `--matchday <n>`, `--all`, `--results <file>`, `--live`, `--url`, `--env`, `--secret`, `--dry-run`. |
+| `results:fetch`   | `node --env-file=.env.test scripts/fetch-results.mjs`               | Fetches real Premier League results from Football-Data and writes them to `test-fixtures/`. Accepts `--md <range>` and `--season <year>`.                                                              |
+| `test:expected`   | `node --env-file=.env.test scripts/compute-expected.mjs`            | Computes the independent expected-points oracle from the seeded predictions + results and prints a table.                                                                                              |
+| `test:points`     | `node --env-file=.env.test scripts/verify-points.mjs`               | Asserts the app-calculated `user_points` match the expected-points oracle. Exits non-zero on mismatch (regression check).                                                                              |
+| `db:test:migrate` | `node --env-file=.env.test node_modules/.bin/prisma migrate deploy` | Applies Prisma migrations to the **test** database defined in `.env.test`.                                                                                                                             |
+| `db:test:studio`  | `node --env-file=.env.test node_modules/.bin/prisma studio`         | Opens Prisma Studio against the **test** database.                                                                                                                                                     |
+| `db:test:seed`    | `node --env-file=.env.test prisma/seed-test.mjs`                    | Seeds the **test** database with users, a league, and MW1–5 predictions (real + synthetic).                                                                                                            |
+| `dev:test`        | `node scripts/dev-test.mjs`                                         | Starts the dev server bound to the **test** database (loads `.env.test`).                                                                                                                              |
+| `postinstall`     | `prisma generate`                                                   | Runs automatically after every `npm install`. Generates the Prisma Client from `prisma/schema.prisma`, making the typed database client available to the app.                                          |
+
+> The `test:*`, `db:test:*`, `results:fetch`, and `dev:test` scripts support points-calculation testing against a separate test database. See [docs/POINTS_TESTING.md](docs/POINTS_TESTING.md) for the full workflow.
 
 ## API Features
 
