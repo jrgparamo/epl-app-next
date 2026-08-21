@@ -66,27 +66,26 @@ Each phase is independently verifiable.
 
 ### Phase 1 — Provision test DB + tooling
 
-- Create a new Prisma Postgres database for testing. Grab its **direct TCP
-  `postgres://` connection string** (not the `prisma+postgres://` Accelerate
-  URL — the `@prisma/adapter-pg` setup needs a real TCP connection).
-- Create `.env.test` with `DATABASE_URL` (test), `CRON_SECRET` (test),
-  `FOOTBALL_DATA_API_KEY`, `NEXT_PUBLIC_APP_URL=http://localhost:3000`.
-  Add `.env.test` to `.gitignore`.
+- Create a new Prisma Postgres database for testing (Vercel dashboard →
+  Storage → Create Database). Copy its `postgres://…@…db.prisma.io…` string.
+- Create `.env.test` with that `DATABASE_URL` plus the `CRON_SECRET`,
+  `FOOTBALL_DATA_API_KEY`, and `AUTH_SECRET` reused from `.env.local`, and
+  `NEXT_PUBLIC_APP_URL=http://localhost:3000`. (`.env*` is already gitignored.)
 - Apply the schema:
   ```bash
-  npx dotenv -e .env.test -- prisma migrate deploy
+  npm run db:test:migrate
   ```
-- **Verify:** `npx dotenv -e .env.test -- prisma studio` shows empty tables.
+- **Verify:** `npm run db:test:studio` shows empty tables.
 
-> If the free tier exposes only the Accelerate URL, fall back to local Docker
-> Postgres or a Neon branch for the test DB.
+> The npm scripts load `.env.test` via Node's `--env-file` flag, so no
+> `dotenv-cli` is needed. `dotenv` (the library) is already a dependency.
 
 ### Phase 2 — Seed users, league, predictions
 
-- `prisma/seed-test.js` upserts the 7 users from `scores/*.json`
-  (jorge, eric, ever, ray, ricardo, rob, cisco) + a test league, imports their
-  predictions into `user_predictions`, and generates deterministic synthetic
-  predictions (seeded RNG) for MW1–MW5, saved under
+- `prisma/seed-test.mjs` (run via `npm run db:test:seed`) upserts the 7 users
+  from `scores/*.json` (jorge, eric, ever, ray, ricardo, rob, cisco) + a test
+  league, imports their predictions into `user_predictions`, and generates
+  deterministic synthetic predictions (seeded RNG) for MW1–MW5, saved under
   `test-fixtures/2025-26/predictions/` for stability.
 - **Verify:** per-user prediction counts; leaderboard shows everyone at 0 pts.
 
@@ -202,22 +201,42 @@ npm run points:calc -- --matchday 2 --dry-run
 npm run points:calc -- --live --url https://your-app.vercel.app
 ```
 
-> To test against the test database, start the server with the test env first,
-> e.g. `npx dotenv -e .env.test -- next dev`, then point the runner at it with
-> `--env .env.test`.
+> To test against the test database, start the server with the test env first:
+> `npm run dev:test`, then point the runner at it with `--env .env.test`.
 
 ---
 
 ## 7. Files
 
-| Path                                                 | Purpose                                         |
-| ---------------------------------------------------- | ----------------------------------------------- |
-| `src/app/api/cron/calculate-points/route.js`         | Cron endpoint + `{ matches }` override          |
-| `scripts/calculate-points.mjs`                       | Manual local runner                             |
-| `docs/POINTS_TESTING.md`                             | This document                                   |
-| `.env.test` _(planned)_                              | Test DB connection + secrets (gitignored)       |
-| `prisma/seed-test.js` _(planned)_                    | Seed users / league / predictions               |
-| `scripts/fetch-results.js` _(planned)_               | One-time results fetch → fixtures               |
-| `scripts/compute-expected.js` _(planned)_            | Independent expected-points oracle              |
-| `test-fixtures/2025-26/**` _(planned)_               | Results, synthetic predictions, expected points |
-| `.github/workflows/calculate-points.yml` _(planned)_ | Free backup scheduler                           |
+| Path                                         | Purpose                                   |
+| -------------------------------------------- | ----------------------------------------- |
+| `src/app/api/cron/calculate-points/route.js` | Cron endpoint + `{ matches }` override    |
+| `scripts/calculate-points.mjs`               | Manual local runner (POSTs to cron)       |
+| `scripts/fetch-results.mjs`                  | One-time results fetch → fixtures         |
+| `scripts/compute-expected.mjs`               | Independent expected-points oracle        |
+| `scripts/verify-points.mjs`                  | Assert app points == oracle (regression)  |
+| `scripts/dev-test.mjs`                       | `next dev` bound to the test DB           |
+| `prisma/seed-test.mjs`                       | Seed users / league / predictions         |
+| `test-fixtures/2025-26/results/*.json`       | Real MW1–MW5 final scores                 |
+| `test-fixtures/2025-26/expected-points.json` | Computed expected points (oracle)         |
+| `.github/workflows/calculate-points.yml`     | Free backup scheduler                     |
+| `docs/POINTS_TESTING.md`                     | This document                             |
+| `.env.test`                                  | Test DB connection + secrets (gitignored) |
+
+## 8. Verified quickstart
+
+Full loop against the test DB (run from repo root):
+
+```bash
+npm run db:test:migrate          # apply schema to the test DB
+npm run results:fetch            # fetch real 2025/26 MW1–5 scores → fixtures
+npm run db:test:seed             # users + league + real & synthetic predictions
+npm run test:expected            # build the expected-points oracle + print table
+
+npm run dev:test                 # (separate terminal) server on the test DB
+
+npm run points:calc -- --all --env .env.test   # run the job via the cron path
+npm run test:points              # assert app points == oracle  → PASS/FAIL
+```
+
+Per-matchweek instead of `--all`: `npm run points:calc -- --matchday 3 --env .env.test`.
