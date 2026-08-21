@@ -216,14 +216,22 @@ async function main() {
     return;
   }
 
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${secret}`,
-    },
-    body,
-  });
+  // One retry: the pooled Postgres endpoint can crash the first query on a
+  // cold start (08P01), which surfaces as a 5xx.
+  let res;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+      },
+      body,
+    });
+    if (res.status < 500 || attempt === 2) break;
+    console.log(`  ${res.status} — retrying once…`);
+    await new Promise((r) => setTimeout(r, 750));
+  }
 
   const text = await res.text();
   let json;

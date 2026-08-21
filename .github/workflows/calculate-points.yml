@@ -1,0 +1,25 @@
+name: Calculate Points (backup scheduler)
+
+# Free fallback for the Vercel Cron (vercel.json → /api/cron/calculate-points).
+# Runs the deployed job on a schedule and on demand. Targets PRODUCTION with
+# live results (no body = server fetches finished matches itself).
+#
+# Required repo secrets:
+#   CRON_SECRET  — same value as the deployed app's CRON_SECRET
+#   APP_URL      — deployed base URL, e.g. https://epl-app-next.vercel.app
+
+on:
+  schedule:
+    # 05:00 UTC — one hour after the Vercel cron, as a backstop.
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  calculate-points:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger calculate-points
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/calculate-points"
