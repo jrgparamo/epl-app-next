@@ -108,8 +108,13 @@ export function getTeamLogoDefault(teamName) {
 export function formatMatchDate(utcDate) {
   const date = new Date(utcDate);
   const now = new Date();
-  const diffTime = date.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Compare calendar days in local time, not a rolling 24h window
+  const startOfDay = (d) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round(
+    (startOfDay(date) - startOfDay(now)) / (1000 * 60 * 60 * 24),
+  );
 
   if (diffDays === 0) {
     return "Today";
