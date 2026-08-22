@@ -176,3 +176,97 @@ export async function getUserPointsSummaries(userIds) {
   }
   return result;
 }
+
+const FOOTBALL_DATA_BASE_URL = "https://api.football-data.org/v4";
+const PREMIER_LEAGUE_ID = 2021;
+
+async function fetchFinishedMatchesFromApi() {
+  const apiKey =
+    process.env.FOOTBALL_DATA_API_KEY ||
+    process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY;
+  if (!apiKey) throw new Error("FOOTBALL_DATA_API_KEY not configured");
+
+  const response = await fetch(
+    `${FOOTBALL_DATA_BASE_URL}/competitions/${PREMIER_LEAGUE_ID}/matches?status=FINISHED`,
+    { headers: { "X-Auth-Token": apiKey } },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch matches: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.matches || [];
+}
+
+/**
+ * Opportunistically recompute points for recently-finished matches when a user
+ * reads their points, so results are fresh soon after a match ends instead of
+ * waiting for the once-a-day cron.
+ *
+ * Throttled via a `CronLog` marker (shared with the cron) so the external
+ * football-data fetch runs at most once per `throttleMs` across all readers,
+ * and scoped to matches updated within `recentMs` to keep the work bounded.
+ *
+ * Best-effort: any failure is swallowed by the caller so reads never break.
+ *
+ * @param {{ throttleMs?: number, recentMs?: number }} [options]
+ * @returns {Promise<{ skipped: boolean, processed?: number, awarded?: number }>}
+ */
+export async function refreshRecentMatchPoints({
+  throttleMs = 10 * 60 * 1000,
+  recentMs = 3 * 24 * 60 * 60 * 1000,
+} = {}) {
+  const lastRun = await prisma.cronLog.findFirst({
+    where: {
+      jobName: { in: ["cron_calculate_points", "points_lazy_refresh"] },
+      status: "completed",
+    },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  if (lastRun && Date.now() - lastRun.createdAt.getTime() < throttleMs) {
+    return { skipped: true };
+  }
+
+  let matches;
+  try {
+    matches = await fetchFinishedMatchesFromApi();
+  } catch (error) {
+    console.error("Lazy points refresh: fetch failed:", error);
+    return { skipped: true };
+  }
+
+  const cutoff = Date.now() - recentMs;
+  let processed = 0;
+  let awarded = 0;
+
+  for (const match of matches) {
+    if (match?.status !== "FINISHED" || !match?.score?.fullTime) continue;
+    // Skip matches that finished well in the past; the daily cron backfills those.
+    const updatedAt = match.lastUpdated
+      ? new Date(match.lastUpdated).getTime()
+      : 0;
+    if (updatedAt && updatedAt < cutoff) continue;
+
+    const { home, away } = match.score.fullTime;
+    try {
+      awarded += await calculateMatchPoints(
+        match.id,
+        Number(home),
+        Number(away),
+      );
+      processed += 1;
+    } catch (error) {
+      console.error(`Lazy points refresh: match ${match.id} failed:`, error);
+    }
+  }
+
+  await prisma.cronLog.create({
+    data: {
+      jobName: "points_lazy_refresh",
+      status: "completed",
+      message: `Lazy refresh: ${processed} matches processed, ${awarded} points`,
+    },
+  });
+
+  return { skipped: false, processed, awarded };
+}

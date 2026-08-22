@@ -16,13 +16,27 @@ The new system automatically calculates and stores user points in the database w
 
 ### API Endpoints
 
-1. **`/api/points`** (GET): Retrieve user's total points
+1. **`/api/points`** (GET): Retrieve the user's points summary. Before reading,
+   it runs a throttled, best-effort `refreshRecentMatchPoints()` so recently
+   finished matches are scored on read instead of waiting for the daily cron.
 2. **`/api/points`** (POST): Calculate points for finished matches (admin/cron)
 3. **`/api/cron/calculate-points`** (POST): Automatic point calculation trigger
 
-### Hooks
+### Hooks & Providers
 
-1. **`useUserPoints`**: Fetches user points from database with localStorage fallback
+1. **`useUserPoints`**: Fetches the points summary from `/api/points` and caches
+   the response in `localStorage` (`user_points_cache_<userId>`) using a
+   stale-while-revalidate strategy (30-minute TTL). It seeds from the cache on
+   mount so the badge never flashes `0`, and revalidates on mount / tab focus.
+2. **`PointsProvider` / `usePoints`**: Wraps the app (in `layout.js`) and shares
+   a single `useUserPoints` instance so the **Season Total** badge is identical
+   on the matches, account, and leaderboard pages.
+
+> **Season Total is always the DB total.** Every page reads `points` from
+> `usePoints()`. The old per-device incremental counter
+> (`total_correct_predictions_<email>`) is no longer a source for the badge; it
+> remains only inside `useCorrectPredictions` for the per-matchweek running
+> total shown in `PredictionStats`.
 
 ## Points Calculation Rules
 
@@ -33,18 +47,34 @@ The new system automatically calculates and stores user points in the database w
 
 ### Cron Job Setup
 
-The system runs automatic point calculation every 2 hours via Vercel Cron:
+Vercel Cron (Hobby plan) is limited to **once per day**, so the scheduled job is
+the backfill/safety net rather than the primary freshness mechanism:
 
 ```json
 {
   "crons": [
     {
       "path": "/api/cron/calculate-points",
-      "schedule": "0 */2 * * *"
+      "schedule": "0 4 * * *"
     }
   ]
 }
 ```
+
+### Near-real-time freshness (lazy refresh)
+
+Because the cron only runs daily, `GET /api/points` also triggers
+`refreshRecentMatchPoints()`:
+
+- **Throttled** via a shared `CronLog` marker so the external football-data
+  fetch runs at most once per ~10 minutes across all readers (respecting the
+  provider's rate limits).
+- **Scoped** to matches updated within the last ~3 days to keep the work bounded
+  (older matches are covered by the daily cron).
+- **Best-effort**: any failure is swallowed so a read never breaks.
+
+The net effect: points become correct within minutes of a match finishing the
+next time any user opens the app, without needing more frequent cron runs.
 
 ### Environment Variables Required
 
@@ -144,6 +174,8 @@ SELECT calculate_match_points('match-id', home_score, away_score);
 2. Check Row Level Security policies
 3. Ensure database migrations are applied
 
-### Fallback to localStorage
+### Fallback behaviour
 
-If database points are unavailable, the system automatically falls back to localStorage for backwards compatibility.
+If `/api/points` is unavailable, `useUserPoints` keeps showing the last cached
+DB summary (`user_points_cache_<userId>`) instead of dropping to `0`, so the
+Season Total stays stable across transient network errors.

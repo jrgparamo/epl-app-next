@@ -7,12 +7,12 @@ import BottomNavigation from "../components/BottomNavigation";
 import LeagueManager from "../components/LeagueManager";
 import LeagueLeaderboard from "../components/LeagueLeaderboard";
 import { useAuth } from "../components/AuthProvider";
-import { useCorrectPredictions } from "../../hooks/useCorrectPredictions";
+import { usePoints } from "../components/PointsProvider";
 
 export default function LeaderboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const { totalCorrectPredictions } = useCorrectPredictions(user, [], {});
+  const { points } = usePoints();
 
   const [selectedLeagueId, setSelectedLeagueId] = useState(null);
   const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(false);
@@ -75,7 +75,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
-      <Header predictions={totalCorrectPredictions} />
+      <Header predictions={points} />
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24">
         <div className="space-y-6">
@@ -111,8 +111,8 @@ export default function LeaderboardPage() {
                 <div className="text-5xl">🏆</div>
                 <p className="text-lg font-semibold text-white">Coming soon</p>
                 <p className="text-sm text-[#b3b3b3] text-center max-w-xs">
-                  A site-wide ranking across all players is on the way.
-                  In the meantime, create or join a league to compete with friends.
+                  A site-wide ranking across all players is on the way. In the
+                  meantime, create or join a league to compete with friends.
                 </p>
               </div>
             </div>

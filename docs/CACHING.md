@@ -89,7 +89,7 @@ export async function getFixturesByMatchday(matchday) {
   const data = await apiRequest(
     `/api/matches?matchday=${matchday}`,
     cacheKey,
-    CACHE_CONFIG.matches.ttl
+    CACHE_CONFIG.matches.ttl,
   );
   return data.matches || [];
 }
@@ -142,6 +142,22 @@ Client-side cache keys follow patterns:
 - `matches-{matchday}` - Specific matchday fixtures
 - `fixtures-all` - All fixtures
 - `current-matchday` - Current matchday number
+- `user_points_cache_{userId}` - Cached `/api/points` summary (Season Total)
+
+### User Points Cache (Season Total)
+
+The **Season Total** badge is backed by a persistent stale-while-revalidate
+cache in `useUserPoints`:
+
+- Stores the `/api/points` DB summary in `localStorage` under
+  `user_points_cache_{userId}` with a `fetchedAt` timestamp.
+- **30-minute TTL**: a fresh cache is served without any network call; a stale
+  cache is shown immediately and revalidated in the background (on mount and on
+  tab focus).
+- On fetch error, the last cached summary is kept instead of falling back to
+  `0`.
+- Shared app-wide via `PointsProvider` / `usePoints`, so all pages (matches,
+  account, leaderboard) render the same value from a single fetch.
 
 ### Cache Invalidation
 
