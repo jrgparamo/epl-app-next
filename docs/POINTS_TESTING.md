@@ -32,7 +32,8 @@ scheduler is down) and on a **free schedule** in production.
   `UserPoints` for the match before inserting).
 - **Result injection points:**
   - `GET /api/cron/calculate-points` — Vercel Cron; fetches **live** finished
-    matches (current season) and writes `cron_logs`.
+    matches (current season) **directly from football-data.org** and writes
+    `cron_logs`.
   - `POST /api/cron/calculate-points` — with `{ matches: [...] }` it scores
     **those exact matches** (test/backfill override). Without a body it behaves
     like the GET (live fetch).
@@ -91,11 +92,11 @@ Each phase is independently verifiable.
 
 ### Phase 3 — Results fixtures + expected-points oracle
 
-- `scripts/fetch-results.js` fetches finished MW1–MW5 for season 2025
+- `scripts/fetch-results.mjs` fetches finished MW1–MW5 for season 2025
   (`/v4/competitions/2021/matches?season=2025&matchday=<n>`) and writes
   `test-fixtures/2025-26/results/matchday-<n>.json` (football-data shape).
   Respect the free-tier limit (~10 req/min).
-- `scripts/compute-expected.js` re-implements the 3/1/0 rules over
+- `scripts/compute-expected.mjs` re-implements the 3/1/0 rules over
   (predictions + results) and writes `test-fixtures/2025-26/expected-points.json`
   (per user, per matchweek, cumulative). This is the assertion oracle.
 - **Verify:** every predicted matchId has a result; expected table prints.
@@ -141,6 +142,11 @@ results to the real cron function ([route](../src/app/api/cron/calculate-points/
 
 This exercises the full cron path (auth + logging + loop), not just the scoring
 function.
+
+> **Production note:** the live path calls football-data.org **directly** (not
+> the app's own `/api/matches`), so the job can't be broken by a self-request
+> sitting behind Vercel Deployment Protection. It needs `FOOTBALL_DATA_API_KEY`
+> (or `NEXT_PUBLIC_FOOTBALL_DATA_API_KEY`) set in the Production environment.
 
 ---
 
