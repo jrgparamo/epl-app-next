@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateMatchPoints } from "@/lib/points";
 
+const FOOTBALL_DATA_BASE_URL = "https://api.football-data.org/v4";
+const PREMIER_LEAGUE_ID = 2021;
+
 /**
  * Cron entry point that recomputes points for all FINISHED matches.
  *
@@ -9,6 +12,10 @@ import { calculateMatchPoints } from "@/lib/points";
  * We accept both GET (Vercel Cron) and POST (manual backfills) with the
  * same auth check. A POST body of `{ matches: [...] }` scores those exact
  * matches instead of fetching live results — used for local/offline testing.
+ *
+ * Finished matches are fetched directly from football-data.org (not via the
+ * app's own /api/matches) so the job never depends on a self-request that
+ * deployment protection could block.
  */
 async function runCron(request) {
   const authHeader = request.headers.get("authorization");
@@ -46,13 +53,14 @@ async function runCron(request) {
     if (overrideMatches) {
       finishedMatches = overrideMatches;
     } else {
-      const baseUrl = process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const apiKey =
+        process.env.FOOTBALL_DATA_API_KEY ||
+        process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY;
+      if (!apiKey) throw new Error("FOOTBALL_DATA_API_KEY not configured");
 
       const matchesResponse = await fetch(
-        `${baseUrl}/api/matches?status=FINISHED`,
-        { headers: { "Content-Type": "application/json" } },
+        `${FOOTBALL_DATA_BASE_URL}/competitions/${PREMIER_LEAGUE_ID}/matches?status=FINISHED`,
+        { headers: { "X-Auth-Token": apiKey } },
       );
 
       if (!matchesResponse.ok) {
