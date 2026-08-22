@@ -6,12 +6,12 @@ import Link from "next/link";
 import Header from "../components/Header";
 import BottomNavigation from "../components/BottomNavigation";
 import { useAuth } from "../components/AuthProvider";
-import { useCorrectPredictions } from "../../hooks/useCorrectPredictions";
+import { usePoints } from "../components/PointsProvider";
 
 export default function AccountPage() {
   const { user, signOut, loading, refreshUser, registerPasskey } = useAuth();
   const router = useRouter();
-  const { totalCorrectPredictions } = useCorrectPredictions(user, [], {});
+  const { points, pointsData } = usePoints();
 
   const [displayName, setDisplayName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -132,7 +132,7 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white">
-      <Header predictions={totalCorrectPredictions} />
+      <Header predictions={points} />
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24">
         <div className="space-y-6">
@@ -202,7 +202,7 @@ export default function AccountPage() {
                     Total Correct Predictions
                   </label>
                   <div className="text-lg text-[#00c851]">
-                    {totalCorrectPredictions}
+                    {pointsData?.correct_predictions ?? 0}
                   </div>
                 </div>
 

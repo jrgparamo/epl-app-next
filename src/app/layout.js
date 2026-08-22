@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Noto_Sans, Geist } from "next/font/google";
 import AuthProvider from "./components/AuthProvider";
+import PointsProvider from "./components/PointsProvider";
 import { warmupCache } from "@/lib/warmup";
 
 const notoSans = Noto_Sans({
@@ -29,7 +30,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`dark ${notoSans.variable} ${geist.variable}`}>
       <body className="antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <PointsProvider>{children}</PointsProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -12,7 +12,7 @@ export function useCorrectPredictions(user, matches, scorePredictions) {
 
     // Load other localStorage data (these remain as is for now)
     const savedCorrectCount = localStorage.getItem(
-      `correct_predictions_${user.email}`
+      `correct_predictions_${user.email}`,
     );
     if (savedCorrectCount) {
       setCorrectPredictions(parseInt(savedCorrectCount, 10));
@@ -20,7 +20,7 @@ export function useCorrectPredictions(user, matches, scorePredictions) {
 
     // Load total correct predictions from localStorage
     const savedTotalCorrect = localStorage.getItem(
-      `total_correct_predictions_${user.email}`
+      `total_correct_predictions_${user.email}`,
     );
     if (savedTotalCorrect) {
       setTotalCorrectPredictions(parseInt(savedTotalCorrect, 10));
@@ -76,7 +76,7 @@ export function useCorrectPredictions(user, matches, scorePredictions) {
       // Get the key to track processed matches
       const processedKey = `processed_matches_${user.email}`;
       const processedMatches = JSON.parse(
-        localStorage.getItem(processedKey) || "{}"
+        localStorage.getItem(processedKey) || "{}",
       );
 
       // Check if this match has already been processed
@@ -91,17 +91,17 @@ export function useCorrectPredictions(user, matches, scorePredictions) {
       // Update total correct predictions
       const currentTotal = parseInt(
         localStorage.getItem(`total_correct_predictions_${user.email}`) || "0",
-        10
+        10,
       );
       const newTotal = currentTotal + points;
 
       setTotalCorrectPredictions(newTotal);
       localStorage.setItem(
         `total_correct_predictions_${user.email}`,
-        newTotal.toString()
+        newTotal.toString(),
       );
     },
-    [user]
+    [user],
   );
 
   // Update correct predictions count when matches change or predictions are updated
@@ -151,7 +151,7 @@ export function useCorrectPredictions(user, matches, scorePredictions) {
     setCorrectPredictions(newCorrectCount);
     localStorage.setItem(
       `correct_predictions_${user.email}`,
-      newCorrectCount.toString()
+      newCorrectCount.toString(),
     );
   }, [matches, scorePredictions, user, updateTotalCorrectPredictions]);
 

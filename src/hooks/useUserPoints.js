@@ -1,89 +1,124 @@
 import { useState, useEffect, useCallback } from "react";
 
+// Season Total updates at most once per completed match, so a short client-side
+// cache keeps the badge instant and avoids hitting /api/points on every page.
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes — matches the app's other caches.
+const cacheKey = (userId) => `user_points_cache_${userId}`;
+
+const EMPTY_SUMMARY = {
+  total_points: 0,
+  matches_predicted: 0,
+  correct_predictions: 0,
+  last_updated: null,
+};
+
+function readCache(userId) {
+  if (typeof window === "undefined" || !userId) return null;
+  try {
+    const raw = localStorage.getItem(cacheKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.fetchedAt !== "number" || !parsed.data) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(userId, data) {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.setItem(
+      cacheKey(userId),
+      JSON.stringify({ data, fetchedAt: Date.now() }),
+    );
+  } catch {
+    // localStorage unavailable (SSR, private browsing quota) — safe to ignore.
+  }
+}
+
 export function useUserPoints(user) {
-  const [points, setPoints] = useState(0);
-  const [pointsData, setPointsData] = useState({
-    total_points: 0,
-    matches_predicted: 0,
-    correct_predictions: 0,
-    last_updated: null,
-  });
+  const userId = user?.id;
+  const [pointsData, setPointsData] = useState(EMPTY_SUMMARY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchPoints = useCallback(async () => {
-    if (!user?.id) {
-      setPoints(0);
-      setPointsData({
-        total_points: 0,
-        matches_predicted: 0,
-        correct_predictions: 0,
-        last_updated: null,
-      });
+  // Seed synchronously from the cached DB response so the badge never flashes 0.
+  useEffect(() => {
+    if (!userId) {
+      setPointsData(EMPTY_SUMMARY);
       return;
     }
+    const cached = readCache(userId);
+    if (cached?.data) setPointsData(cached.data);
+  }, [userId]);
 
-    setLoading(true);
-    setError(null);
+  const fetchPoints = useCallback(
+    async ({ force = false } = {}) => {
+      if (!userId) return;
 
-    try {
-      const response = await fetch("/api/points", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const cached = readCache(userId);
+      const isFresh = cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS;
+      // Serve fresh cache without touching the network (stale-while-revalidate).
+      if (isFresh && !force) {
+        setPointsData(cached.data);
+        return;
       }
 
-      const data = await response.json();
-      setPoints(data.total_points || 0);
-      setPointsData(data);
-    } catch (err) {
-      console.error("Error fetching user points:", err);
-      setError(err.message);
+      setLoading(true);
+      setError(null);
 
-      // Fallback to localStorage for backwards compatibility
-      if (user?.email) {
-        const savedTotal = localStorage.getItem(
-          `total_correct_predictions_${user.email}`
-        );
-        if (savedTotal) {
-          const fallbackPoints = parseInt(savedTotal, 10) || 0;
-          setPoints(fallbackPoints);
-          setPointsData({
-            total_points: fallbackPoints,
-            matches_predicted: 0,
-            correct_predictions: 0,
-            last_updated: null,
-          });
+      try {
+        const response = await fetch("/api/points", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+        const summary = {
+          total_points: data.total_points ?? 0,
+          matches_predicted: data.matches_predicted ?? 0,
+          correct_predictions: data.correct_predictions ?? 0,
+          last_updated: data.last_updated ?? null,
+        };
+        setPointsData(summary);
+        writeCache(userId, summary);
+      } catch (err) {
+        console.error("Error fetching user points:", err);
+        setError(err.message);
+        // Keep showing the last cached value on error rather than dropping to 0.
+        if (cached?.data) setPointsData(cached.data);
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id, user?.email]);
+    },
+    [userId],
+  );
 
-  // Fetch points when user changes and set up periodic refresh
+  // Revalidate on mount and when the tab regains focus; both are gated by the
+  // TTL inside fetchPoints, so they won't spam the network.
   useEffect(() => {
-    // Initial fetch
     fetchPoints();
+    if (!userId) return;
 
-    // Set up interval for periodic refresh (every 5 minutes)
-    if (!user?.id) return;
+    const onFocus = () => fetchPoints();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [fetchPoints, userId]);
 
-    const interval = setInterval(fetchPoints, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchPoints, user?.id]);
-
-  const refetchPoints = useCallback(() => {
-    fetchPoints();
-  }, [fetchPoints]);
+  const refetchPoints = useCallback(
+    () => fetchPoints({ force: true }),
+    [fetchPoints],
+  );
 
   return {
-    points,
+    points: pointsData.total_points || 0,
     pointsData,
     loading,
     error,

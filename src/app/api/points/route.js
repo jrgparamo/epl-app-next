@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth-helpers";
-import { calculateMatchPoints, getUserPointsSummary } from "@/lib/points";
+import {
+  calculateMatchPoints,
+  getUserPointsSummary,
+  refreshRecentMatchPoints,
+} from "@/lib/points";
 
 // GET: Retrieve the current user's points summary.
 export async function GET() {
@@ -8,6 +12,14 @@ export async function GET() {
   if (response) return response;
 
   try {
+    // Bring recently-finished matches up to date before reading (throttled,
+    // best-effort) so points don't lag until the once-a-day cron runs.
+    try {
+      await refreshRecentMatchPoints();
+    } catch (refreshError) {
+      console.error("Points lazy refresh failed (non-fatal):", refreshError);
+    }
+
     const summary = await getUserPointsSummary(user.id);
     return NextResponse.json({
       total_points: summary.total_points,

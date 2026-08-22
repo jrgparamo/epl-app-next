@@ -15,10 +15,10 @@ import { SyncStatusIndicator } from "./components/SyncStatusIndicator";
 import { MatchdayHeader } from "./components/MatchdayHeader";
 import { EmptyState } from "./components/EmptyState";
 import { useAuth } from "./components/AuthProvider";
+import { usePoints } from "./components/PointsProvider";
 import { useMatches } from "../hooks/useMatches";
 import { usePredictions } from "../hooks/usePredictions";
 import { useCorrectPredictions } from "../hooks/useCorrectPredictions";
-import { useUserPoints } from "../hooks/useUserPoints";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 export default function Home() {
@@ -75,16 +75,14 @@ export default function Home() {
     forceSyncPredictions,
   } = usePredictions(user);
 
-  const { correctPredictions, totalCorrectPredictions } = useCorrectPredictions(
+  const { correctPredictions } = useCorrectPredictions(
     user,
     matches,
     scorePredictions,
   );
 
-  // Use database-stored points (preferred) with fallback to local calculation
-  const { points: databasePoints } = useUserPoints(user);
-  const displayPoints =
-    databasePoints !== undefined ? databasePoints : totalCorrectPredictions;
+  // Season Total comes from the shared, DB-backed points source (see PointsProvider).
+  const { points: displayPoints } = usePoints();
 
   if (authLoading) {
     return (
