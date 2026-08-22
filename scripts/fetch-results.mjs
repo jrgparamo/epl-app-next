@@ -73,9 +73,7 @@ async function fetchMatchday(apiKey, season, md) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const apiKey =
-    process.env.FOOTBALL_DATA_API_KEY ||
-    process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY;
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY;
   if (!apiKey)
     throw new Error(
       "FOOTBALL_DATA_API_KEY not set (use --env-file=.env.test).",

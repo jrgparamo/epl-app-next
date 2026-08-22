@@ -26,7 +26,7 @@
    Open `.env.local` and replace `your_api_key_here` with your actual API key:
 
    ```
-   NEXT_PUBLIC_FOOTBALL_DATA_API_KEY=your_actual_api_key_here
+   FOOTBALL_DATA_API_KEY=your_actual_api_key_here
    ```
 
 3. **Start the App**
@@ -111,24 +111,24 @@ The schema lives in `prisma/schema.prisma` and creates the following tables. Use
 
 #### Auth.js Tables (managed automatically by Auth.js v5)
 
-| Table | Model | Purpose |
-|---|---|---|
-| `users` | `User` | Core user record. Stores identity (email, name, avatar) plus app-specific fields: `displayName` (shown in leaderboards) and `isAdmin` (global admin flag). Central hub — all other models relate back to this table. |
-| `accounts` | `Account` | External OAuth/provider accounts linked to a user. Stores provider tokens (`access_token`, `refresh_token`, `id_token`). Supports multiple providers per user. |
-| `sessions` | `Session` | Active database sessions. Required by the passkey (WebAuthn) provider — session strategy must be `"database"`. Rows expire and are cleaned up by Auth.js. |
-| `verification_tokens` | `VerificationToken` | Short-lived tokens for magic-link emails. Created when a sign-in email is sent and consumed (deleted) when the user clicks the link. |
-| `authenticators` | `Authenticator` | WebAuthn / passkey credentials registered per device. Stores the public key, credential ID, device type, and transport metadata. |
+| Table                 | Model               | Purpose                                                                                                                                                                                                              |
+| --------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`               | `User`              | Core user record. Stores identity (email, name, avatar) plus app-specific fields: `displayName` (shown in leaderboards) and `isAdmin` (global admin flag). Central hub — all other models relate back to this table. |
+| `accounts`            | `Account`           | External OAuth/provider accounts linked to a user. Stores provider tokens (`access_token`, `refresh_token`, `id_token`). Supports multiple providers per user.                                                       |
+| `sessions`            | `Session`           | Active database sessions. Required by the passkey (WebAuthn) provider — session strategy must be `"database"`. Rows expire and are cleaned up by Auth.js.                                                            |
+| `verification_tokens` | `VerificationToken` | Short-lived tokens for magic-link emails. Created when a sign-in email is sent and consumed (deleted) when the user clicks the link.                                                                                 |
+| `authenticators`      | `Authenticator`     | WebAuthn / passkey credentials registered per device. Stores the public key, credential ID, device type, and transport metadata.                                                                                     |
 
 #### Application Tables
 
-| Table | Model | Purpose |
-|---|---|---|
-| `user_predictions` | `Prediction` | A user's score prediction for a specific EPL match (`homeScore`, `awayScore`, `confidence`). Enforces one prediction per `(userId, matchId)` pair. Predictions lock when a match kicks off. |
-| `user_points` | `UserPoints` | Points awarded after a match finishes. One row per `(userId, matchId, predictionType)`. Records both predicted and actual scores. `predictionType` is either `result` (1 pt for correct outcome) or `exact_score` (3 pts for correct scoreline). Populated by a cron job via `/api/cron/calculate-points`. |
-| `leagues` | `League` | User-created private prediction groups. Each league has a unique short `joinCode` used to invite members, an optional description, a member cap (`maxMembers`, default 100), and an `isActive` flag. |
-| `league_members` | `LeagueMember` | Join table connecting `users` to `leagues`. Tracks when each user joined and whether they hold league-admin rights. A unique constraint on `(leagueId, userId)` prevents duplicate memberships. |
-| `cron_logs` | `CronLog` | Audit trail for background jobs. Each row captures the job name, status string, optional message, and arbitrary JSON metadata. Used primarily to monitor the points-calculation cron runs. |
-| `rate_limits` | `RateLimit` | Counter-based rate limiting buckets. One row per `(key, windowStart)` time window. Currently used to cap magic-link send attempts (5 per email address per 15 minutes) — see `src/lib/rate-limit.js`. |
+| Table              | Model          | Purpose                                                                                                                                                                                                                                                                                                    |
+| ------------------ | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user_predictions` | `Prediction`   | A user's score prediction for a specific EPL match (`homeScore`, `awayScore`, `confidence`). Enforces one prediction per `(userId, matchId)` pair. Predictions lock when a match kicks off.                                                                                                                |
+| `user_points`      | `UserPoints`   | Points awarded after a match finishes. One row per `(userId, matchId, predictionType)`. Records both predicted and actual scores. `predictionType` is either `result` (1 pt for correct outcome) or `exact_score` (3 pts for correct scoreline). Populated by a cron job via `/api/cron/calculate-points`. |
+| `leagues`          | `League`       | User-created private prediction groups. Each league has a unique short `joinCode` used to invite members, an optional description, a member cap (`maxMembers`, default 100), and an `isActive` flag.                                                                                                       |
+| `league_members`   | `LeagueMember` | Join table connecting `users` to `leagues`. Tracks when each user joined and whether they hold league-admin rights. A unique constraint on `(leagueId, userId)` prevents duplicate memberships.                                                                                                            |
+| `cron_logs`        | `CronLog`      | Audit trail for background jobs. Each row captures the job name, status string, optional message, and arbitrary JSON metadata. Used primarily to monitor the points-calculation cron runs.                                                                                                                 |
+| `rate_limits`      | `RateLimit`    | Counter-based rate limiting buckets. One row per `(key, windowStart)` time window. Currently used to cap magic-link send attempts (5 per email address per 15 minutes) — see `src/lib/rate-limit.js`.                                                                                                      |
 
 #### Potentially Unused / Legacy
 

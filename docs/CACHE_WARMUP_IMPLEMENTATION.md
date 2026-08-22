@@ -52,7 +52,7 @@ ENABLE_CACHE_WARMUP=true
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Your Football Data API key
-NEXT_PUBLIC_FOOTBALL_DATA_API_KEY=your_api_key_here
+FOOTBALL_DATA_API_KEY=your_api_key_here
 ```
 
 ## How It Works
