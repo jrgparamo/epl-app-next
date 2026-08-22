@@ -181,9 +181,7 @@ const FOOTBALL_DATA_BASE_URL = "https://api.football-data.org/v4";
 const PREMIER_LEAGUE_ID = 2021;
 
 async function fetchFinishedMatchesFromApi() {
-  const apiKey =
-    process.env.FOOTBALL_DATA_API_KEY ||
-    process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY;
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY;
   if (!apiKey) throw new Error("FOOTBALL_DATA_API_KEY not configured");
 
   const response = await fetch(

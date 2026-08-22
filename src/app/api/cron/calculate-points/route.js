@@ -53,9 +53,7 @@ async function runCron(request) {
     if (overrideMatches) {
       finishedMatches = overrideMatches;
     } else {
-      const apiKey =
-        process.env.FOOTBALL_DATA_API_KEY ||
-        process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY;
+      const apiKey = process.env.FOOTBALL_DATA_API_KEY;
       if (!apiKey) throw new Error("FOOTBALL_DATA_API_KEY not configured");
 
       const matchesResponse = await fetch(

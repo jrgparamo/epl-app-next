@@ -56,7 +56,7 @@ Create a `.env.local` file in the root directory:
 
 ```bash
 # Required: Football Data API
-NEXT_PUBLIC_FOOTBALL_DATA_API_KEY=your_football_data_api_key
+FOOTBALL_DATA_API_KEY=your_football_data_api_key
 
 # Required: Auth.js v5
 AUTH_SECRET=<run: openssl rand -base64 32>

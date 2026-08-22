@@ -146,7 +146,7 @@ function.
 > **Production note:** the live path calls football-data.org **directly** (not
 > the app's own `/api/matches`), so the job can't be broken by a self-request
 > sitting behind Vercel Deployment Protection. It needs `FOOTBALL_DATA_API_KEY`
-> (or `NEXT_PUBLIC_FOOTBALL_DATA_API_KEY`) set in the Production environment.
+> set in the Production environment.
 
 ---
 
