@@ -227,6 +227,19 @@ export default function MatchCard({
           </div>
         )}
 
+        {/* No pick made — finished match, authenticated */}
+        {matchFinished &&
+          isAuthenticated &&
+          (!scorePrediction ||
+            scorePrediction.home === null ||
+            scorePrediction.away === null) && (
+            <div className="mt-2.5">
+              <span className="text-xs text-muted-foreground">
+                No pick made
+              </span>
+            </div>
+          )}
+
         {/* Prediction input — upcoming matches, authenticated */}
         {isAuthenticated && !matchStarted && !matchFinished && (
           <div className="mt-3 pt-3 border-t border-border">
@@ -292,6 +305,13 @@ export default function MatchCard({
         {/* Match started — locked */}
         {matchStarted && !matchFinished && isAuthenticated && (
           <div className="mt-3 pt-3 border-t border-border text-center">
+            {scorePrediction &&
+              scorePrediction.home !== null &&
+              scorePrediction.away !== null && (
+                <p className="text-xs text-muted-foreground mb-1">
+                  Your pick: {scorePrediction.home} – {scorePrediction.away}
+                </p>
+              )}
             <span className="text-xs text-muted-foreground">
               Match started — predictions locked
             </span>
