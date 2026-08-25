@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import apiCache from "@/lib/api-cache";
+import { requireAdmin } from "@/lib/auth-helpers";
 
 /**
  * Cache management API endpoint
@@ -8,6 +9,9 @@ import apiCache from "@/lib/api-cache";
  */
 
 export async function POST(request) {
+  const { response: authError } = await requireAdmin();
+  if (authError) return authError;
+
   try {
     const { action, tag } = await request.json();
 
@@ -51,7 +55,7 @@ export async function POST(request) {
             success: false,
             message: "Tag parameter required",
           },
-          { status: 400 }
+          { status: 400 },
         );
 
       default:
@@ -61,7 +65,7 @@ export async function POST(request) {
             message:
               "Invalid action. Use: revalidate-all, revalidate-matches, revalidate-matchday, or revalidate-specific",
           },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
@@ -71,12 +75,15 @@ export async function POST(request) {
         success: false,
         message: "Cache management failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function GET() {
+  const { response: authError } = await requireAdmin();
+  if (authError) return authError;
+
   try {
     const stats = apiCache.getStats();
     return NextResponse.json(stats);
@@ -84,12 +91,15 @@ export async function GET() {
     console.error("Failed to get cache stats:", error);
     return NextResponse.json(
       { error: "Failed to get cache stats" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(request) {
+  const { response: authError } = await requireAdmin();
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const key = searchParams.get("key");
@@ -104,7 +114,7 @@ export async function DELETE(request) {
     console.error("Failed to clear cache:", error);
     return NextResponse.json(
       { error: "Failed to clear cache" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
