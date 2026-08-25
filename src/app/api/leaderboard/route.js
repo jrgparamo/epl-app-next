@@ -51,7 +51,6 @@ export async function GET() {
       return {
         user_id: row.userId,
         display_name: u?.displayName || u?.email?.split("@")[0] || "Anonymous",
-        email: u?.email ?? null,
         predictions: row._sum.pointsEarned ?? 0,
         matches_predicted: matchesMap.get(row.userId) ?? 0,
         correct_predictions: correctMap.get(row.userId) ?? 0,
@@ -85,7 +84,6 @@ export async function GET() {
         user_id: currentUser.id,
         display_name:
           meUser?.displayName || meUser?.email?.split("@")[0] || "You",
-        email: meUser?.email ?? null,
         predictions: meAgg._sum.pointsEarned ?? 0,
         matches_predicted: meDistinct.length,
         correct_predictions: meCorrect,
