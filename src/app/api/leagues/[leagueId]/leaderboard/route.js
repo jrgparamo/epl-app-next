@@ -55,7 +55,6 @@ export async function GET(_request, { params }) {
           user_id: m.userId,
           display_name:
             m.userId === user.id ? displayName || "You" : displayName,
-          email: m.user?.email ?? null,
           points: summary.total_points,
           matches_predicted: summary.matches_predicted,
           correct_predictions: summary.correct_predictions,
