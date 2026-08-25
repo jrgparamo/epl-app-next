@@ -67,24 +67,30 @@ an admin.
 `Permissions-Policy` headers were sent. This leaves the app more exposed to
 clickjacking, MIME sniffing, protocol downgrade, and reduces XSS defense-in-depth.
 
-**Fix:** Added a `headers()` config applying to all routes, plus a nonce-based
-CSP set from `src/middleware.js`:
+**Fix:** Added a `headers()` config in `next.config.mjs` applying to all routes:
 
-- `Content-Security-Policy` — **enforcing, nonce-based**. `script-src` is
-  `'self' 'nonce-<per-request>' 'strict-dynamic'` (no `'unsafe-inline'`;
-  `'unsafe-eval'` added in development only for React Refresh/HMR). The nonce is
-  generated per request in middleware; Next.js stamps it onto the framework
-  scripts it renders. `connect-src` allows `ws:`/`wss:` in development only so
-  HMR works. CSP lives in middleware (not `next.config`) because the nonce must
-  vary per request.
+- `Content-Security-Policy` — **enforcing, static (no nonce)**. `script-src` is
+  `'self' 'unsafe-inline'` (`'unsafe-eval'` and `ws:`/`wss:` added in development
+  only for React Refresh/HMR). Same-origin bundles load via `'self'`; Next.js's
+  inline bootstrap/RSC-streaming scripts load via `'unsafe-inline'`.
 - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
 - `X-Frame-Options: DENY`
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 
-**Follow-up:** `style-src` still allows `'unsafe-inline'` (inline styles are hard
-to nonce and lower risk than scripts); tighten later if feasible.
+**Why not nonce-based CSP:** A nonce/`'strict-dynamic'` policy (via `proxy.js`)
+was trialled but broke production. Per the Next.js docs, nonces require **all
+pages to be dynamically rendered** — prerendered/CDN-cached HTML carries a stale
+nonce that no longer matches the per-request CSP header, so `'strict-dynamic'`
+(which disables the `'self'` fallback) blocks every script. The static policy
+keeps CDN caching and static optimization. Residual risk of `'unsafe-inline'` is
+low here: the app renders no third-party or user-controlled inline scripts and
+uses no `dangerouslySetInnerHTML`.
+
+**Follow-up:** If strict script isolation is ever required (e.g. compliance),
+switch to nonces and force dynamic rendering (`await connection()` per page),
+accepting the loss of CDN caching, or evaluate experimental SRI.
 
 ## LOW — Cron secret compared with non-constant-time equality
 
@@ -174,68 +180,6 @@ Fix HIGH + MEDIUM findings from security scan. Document ALL risks (HIGH/MED/LOW 
 
 ### Phase 1 — HIGH: stop email leak (parallel edits)
 
-1. src/app/api/leaderboard/route.js: remove `email` field from both payload builders (top-N map ~L54 and current-user append ~L88). Keep display_name fallback logic. Require auth: after `getSessionUser()`, if null return 401 (currently proceeds). Decide: keep global board login-required (recommended) vs public-without-email.
-2. src/app/api/leagues/[leagueId]/leaderboard/route.js: remove `email` from member payload (~L58). Already requires membership.
-3. src/app/components/LeagueLeaderboard.js: drop `player.email` fallback at L131 → `(player.display_name || "?")`.
-
-### Phase 2 — MEDIUM: gate cache endpoint
-
-4. src/app/api/cache/route.js: add `requireAdmin()` guard at top of POST and DELETE (import from @/lib/auth-helpers). Optionally gate GET too (leaks cache internals). Return the 401/403 response if present.
-
-### Phase 3 — MEDIUM: security headers
-
-5. next.config.mjs: add async `headers()` returning for all routes: Content-Security-Policy (start report-friendly / conservative), Strict-Transport-Security, X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy. Keep existing images config.
-
-### Phase 4 — audit doc
-
-6. Create SECURITY_AUDIT.md at repo root: date 2026-08-24, methodology, all findings (severity/location/impact/fix/status), positives, prior-leak note, recommendations for LOW items (constant-time compare, join-code rate limit).
-
-## Verification
-
-1. `npm run lint` clean.
-2. `npm run dev`, curl `/api/leaderboard` unauth → 401 (or 200 with no email if kept public). Signed-in → 200, JSON has no `email` key.
-3. curl league leaderboard as member → no `email` key; league page still shows names.
-4. curl `-X POST /api/cache` unauth → 401/403; CacheDebug (dev, admin) still works.
-5. curl `-I` any page → CSP/HSTS/X-Frame-Options/X-Content-Type-Options present.
-6. LeagueLeaderboard renders names (no "?" regressions).
-
-## Scope
-
-- IN: HIGH + MEDIUM fixes + SECURITY_AUDIT.md documenting all risks.
-- OUT (documented only, not fixed now): LOW items (constant-time cron compare, join-code rate limit), secret rotation execution.
-
-## Open decisions
-
-1. Global leaderboard: require login (recommended) vs keep public minus email.
-2. Cache GET: gate too (recommended) vs leave readable.
-3. CSP strictness: conservative allowlist vs report-only first.
-
-# Plan: Fix HIGH/MEDIUM security risks + audit doc
-
-## Goal
-
-Fix HIGH + MEDIUM findings from security scan. Document ALL risks (HIGH/MED/LOW + prior-leak note + positives) in a new `SECURITY_AUDIT.md` at repo root.
-
-## Findings recap
-
-- HIGH: email PII leak in leaderboard payloads; global leaderboard has no auth gate (unauth stranger gets top-50 emails).
-- MEDIUM: `/api/cache` POST+DELETE unauthenticated (cache-invalidation DoS + API quota burn).
-- MEDIUM: no security headers in next.config.mjs (CSP/HSTS/X-Frame-Options/X-Content-Type-Options).
-- LOW: cron secret compared with `!==` (not constant-time).
-- LOW: league join-code no rate limit (enumeration).
-- NOTE: docs/SECRET_ROTATION.md says secrets were exposed previously — confirm rotated.
-
-## Client-consumption research (done)
-
-- No client reads `email` from `/api/leaderboard` (useLeaderboard.js + leaderboard/page.js don't touch it).
-- `src/app/components/LeagueLeaderboard.js` line 131 uses `player.email` ONLY as fallback: `(player.display_name || player.email || "?")`. Server always sends non-null `display_name` (falls back to email.split("@")[0]). So email fallback is dead — safe to remove.
-- `/api/cache` GET/DELETE only called by `src/app/components/CacheDebug.js` (dev-only, gated NODE_ENV==="development"). Same-origin fetch sends session cookie automatically → requireAdmin works if dev signed in as admin.
-- admin/users route legitimately returns email (admin-gated) — leave as-is.
-
-## Steps
-
-### Phase 1 — HIGH: stop email leak (parallel edits)
-
 DECISION Q1 = Option B: keep global leaderboard PUBLIC, just strip PII. Do NOT add 401 gate.
 
 1. src/app/api/leaderboard/route.js: remove `email` field from both payload builders (top-N map ~L54 and current-user append ~L88). Keep display_name fallback logic. No auth gate change.
@@ -254,6 +198,23 @@ DECISION Q3 = CSP report-only first. 5. next.config.mjs: add async `headers()` f
 
 6. Create SECURITY_AUDIT.md at repo root: date 2026-08-24, methodology, all findings (severity/location/impact/fix/status), positives, prior-leak note, recommendations for LOW items (constant-time compare, join-code rate limit).
 
+## Scope
+
+- IN: HIGH + MEDIUM fixes + SECURITY_AUDIT.md documenting all risks.
+- OUT (documented only, not fixed now): LOW items (constant-time cron compare, join-code rate limit), secret rotation execution.
+
+## Open decisions
+
+1. Global leaderboard: require login (recommended) vs keep public minus email.
+2. Cache GET: gate too (recommended) vs leave readable.
+3. CSP strictness: conservative allowlist vs report-only first.
+
+## Decisions (locked)
+
+1. Q1 = Option B: global leaderboard stays PUBLIC, strip PII (email). No login gate added.
+2. Q2 = gate `/api/cache` on ALL methods (GET/POST/DELETE) with requireAdmin.
+3. Q3 = CSP report-only first (Content-Security-Policy-Report-Only). Other headers enforced.
+
 ## Verification
 
 1. `npm run lint` clean.
@@ -262,14 +223,3 @@ DECISION Q3 = CSP report-only first. 5. next.config.mjs: add async `headers()` f
 4. curl `-X POST /api/cache` unauth → 401/403; GET + DELETE also gated; CacheDebug (dev, admin) still works.
 5. curl `-I` any page → HSTS/X-Frame-Options/X-Content-Type-Options/Referrer-Policy present + Content-Security-Policy-Report-Only header (report-only, not enforcing).
 6. LeagueLeaderboard renders names (no "?" regressions).
-
-## Scope
-
-- IN: HIGH + MEDIUM fixes + SECURITY_AUDIT.md documenting all risks.
-- OUT (documented only, not fixed now): LOW items (constant-time cron compare, join-code rate limit), secret rotation execution.
-
-## Decisions (locked)
-
-1. Q1 = Option B: global leaderboard stays PUBLIC, strip PII (email). No login gate added.
-2. Q2 = gate `/api/cache` on ALL methods (GET/POST/DELETE) with requireAdmin.
-3. Q3 = CSP report-only first (Content-Security-Policy-Report-Only). Other headers enforced.
