@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 // Per-request nonce lets us drop 'unsafe-inline'/'unsafe-eval' from script-src.
 // Next.js reads the nonce from the request's CSP header and stamps it onto the
 // framework scripts it renders. 'strict-dynamic' then trusts scripts those load.
-export function middleware(request) {
+export function proxy(request) {
   const isDev = process.env.NODE_ENV !== "production";
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
