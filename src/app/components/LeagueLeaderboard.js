@@ -121,16 +121,14 @@ export default function LeagueLeaderboard({ leagueId }) {
                 key={player.user_id}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3",
-                  player.isCurrentUser && "bg-primary/5"
+                  player.isCurrentUser && "bg-primary/5",
                 )}
               >
                 <RankBadge rank={player.rank} />
 
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarFallback className="text-xs bg-muted">
-                    {(player.display_name || player.email || "?")
-                      .charAt(0)
-                      .toUpperCase()}
+                    {(player.display_name || "?").charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
 
@@ -140,7 +138,10 @@ export default function LeagueLeaderboard({ leagueId }) {
                       {player.display_name}
                     </span>
                     {player.isCurrentUser && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-1.5 py-0 h-4"
+                      >
                         You
                       </Badge>
                     )}
@@ -151,7 +152,8 @@ export default function LeagueLeaderboard({ leagueId }) {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {player.correct_predictions}/{player.matches_predicted} correct
+                    {player.correct_predictions}/{player.matches_predicted}{" "}
+                    correct
                   </p>
                 </div>
 

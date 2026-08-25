@@ -14,3 +14,4 @@
 - [ ] add an easier way to see members choices
 - [ ] Fix the 2/2 correct in the leagues page - figure out what matches_predicted is
 - [ ] ON load scroll to the next match
+- [ ] Show live score with blinking live chip
