@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import BottomNavigation from "../components/BottomNavigation";
 import LeagueManager from "../components/LeagueManager";
 import LeagueLeaderboard from "../components/LeagueLeaderboard";
+import GlobalLeaderboard from "../components/GlobalLeaderboard";
 import { useAuth } from "../components/AuthProvider";
 import { usePoints } from "../components/PointsProvider";
 
@@ -15,7 +16,7 @@ export default function LeaderboardPage() {
   const { points } = usePoints();
 
   const [selectedLeagueId, setSelectedLeagueId] = useState(null);
-  const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(false);
+  const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(true);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -104,18 +105,8 @@ export default function LeaderboardPage() {
           </div>
 
           {showGlobalLeaderboard ? (
-            /* Global Leaderboard — coming soon */
-            <div className="bg-[#2d2d2d] border border-[#404040] rounded-xl p-6">
-              <h1 className="text-2xl font-bold mb-6">Global Leaderboard</h1>
-              <div className="flex flex-col items-center justify-center py-16 space-y-4">
-                <div className="text-5xl">🏆</div>
-                <p className="text-lg font-semibold text-white">Coming soon</p>
-                <p className="text-sm text-[#b3b3b3] text-center max-w-xs">
-                  A site-wide ranking across all players is on the way. In the
-                  meantime, create or join a league to compete with friends.
-                </p>
-              </div>
-            </div>
+            /* Global Leaderboard — site-wide ranking across all leagues */
+            <GlobalLeaderboard />
           ) : (
             /* League Management and Leaderboards */
             <>
