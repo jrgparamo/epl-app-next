@@ -4,20 +4,21 @@
 
 - [x] Need to simulate actual season to test
 - [x] Fix cron job
+- [ ] Revisit caching strategy for football-data.org
+      currentSeason.currentMatchday - update any caching docs
 
 ## Non-Critical
 
 - [ ] Fix spacing on sign in modal and data fetch on tap
 - [ ] Add click on season total for breakdown
 - [ ] Is Prisma caching queries?
-- [x] see your picks when match is live
+
 - [ ] add an easier way to see members choices
+- [ ] add global leaderboard
 - [ ] Fix the 2/2 correct in the leagues page - figure out what matches_predicted is
 - [ ] On load scroll to the next match
 - [ ] Cron jobs calculates all finished matches - can we just limit to all finished within the matchday?
 - [ ] Show live score with blinking live chip
-- [ ] Revisit caching strategy for football-data.org
-      currentSeason.currentMatchday - update any caching docs
 - [ ] Fix this [auth][warn][experimental-webauthn] Read more: https://warnings.authjs.dev
 - [ ] Fix this Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
       In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
