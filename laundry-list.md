@@ -6,18 +6,22 @@
 - [x] Fix cron job
 - [ ] Revisit caching strategy for football-data.org
       currentSeason.currentMatchday - update any caching docs
+- [ ] Is Prisma caching queries?
 
 ## Non-Critical
 
 - [ ] Fix spacing on sign in modal and data fetch on tap
+- [ ] Clean up db and /docs dir among other legacy files.
 - [ ] Add click on season total for breakdown
-- [ ] Is Prisma caching queries?
 
 - [ ] add an easier way to see members choices
-- [ ] add global leaderboard
-- [ ] Fix the 2/2 correct in the leagues page - figure out what matches_predicted is
+- [x] add global leaderboard
+- [x] Fix the 2/2 correct in the leagues page - figure out what matches_predicted is
+      (replaced `matches_predicted` with `correct_predictions/finished_matches`;
+      per-user `predicted_matches` now stored from the predictions table)
 - [ ] On load scroll to the next match
 - [ ] Cron jobs calculates all finished matches - can we just limit to all finished within the matchday?
+- [ ] Instead of fetching all matches - could we store the finished matches with their results in the db?
 - [ ] Show live score with blinking live chip
 - [ ] Fix this [auth][warn][experimental-webauthn] Read more: https://warnings.authjs.dev
 - [ ] Fix this Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.

@@ -81,9 +81,11 @@ async function runCron(request) {
 
     let matchesProcessed = 0;
     let totalPointsCalculated = 0;
+    let finishedCount = 0;
 
     for (const match of finishedMatches) {
       if (match?.status !== "FINISHED" || !match?.score?.fullTime) continue;
+      finishedCount += 1;
       const { home, away } = match.score.fullTime;
 
       try {
@@ -119,6 +121,7 @@ async function runCron(request) {
         jobName: "cron_calculate_points",
         status: "completed",
         message: `Completed: ${matchesProcessed} matches processed, ${totalPointsCalculated} total points calculated`,
+        metadata: { finishedMatches: finishedCount },
       },
     });
 

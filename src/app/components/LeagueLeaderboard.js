@@ -152,7 +152,7 @@ export default function LeagueLeaderboard({ leagueId }) {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {player.correct_predictions}/{player.matches_predicted}{" "}
+                    {player.correct_predictions}/{player.finished_matches ?? 0}{" "}
                     correct
                   </p>
                 </div>

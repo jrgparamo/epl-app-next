@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-helpers";
-import { getUserPointsSummaries } from "@/lib/points";
+import { getUserPointsSummaries, getFinishedMatchesCount } from "@/lib/points";
 
 export async function GET(_request, { params }) {
   const { leagueId } = await params;
@@ -39,14 +39,17 @@ export async function GET(_request, { params }) {
     }
 
     const memberUserIds = league.members.map((m) => m.userId);
-    const pointsByUser = await getUserPointsSummaries(memberUserIds);
+    const [pointsByUser, finishedMatches] = await Promise.all([
+      getUserPointsSummaries(memberUserIds),
+      getFinishedMatchesCount(),
+    ]);
 
     // Sort by total points desc, tie-break on joinedAt asc.
     const enriched = league.members
       .map((m) => {
         const summary = pointsByUser.get(m.userId) ?? {
           total_points: 0,
-          matches_predicted: 0,
+          predicted_matches: 0,
           correct_predictions: 0,
         };
         const displayName =
@@ -56,8 +59,9 @@ export async function GET(_request, { params }) {
           display_name:
             m.userId === user.id ? displayName || "You" : displayName,
           points: summary.total_points,
-          matches_predicted: summary.matches_predicted,
+          predicted_matches: summary.predicted_matches,
           correct_predictions: summary.correct_predictions,
+          finished_matches: finishedMatches,
           joinedAt: m.joinedAt,
           isAdmin: m.isAdmin,
           isCurrentUser: m.userId === user.id,

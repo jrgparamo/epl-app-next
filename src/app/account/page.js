@@ -7,6 +7,7 @@ import Header from "../components/Header";
 import BottomNavigation from "../components/BottomNavigation";
 import { useAuth } from "../components/AuthProvider";
 import { usePoints } from "../components/PointsProvider";
+import { InfoHint } from "@/components/ui/info-hint";
 
 export default function AccountPage() {
   const { user, signOut, loading, refreshUser, registerPasskey } = useAuth();
@@ -198,11 +199,35 @@ export default function AccountPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#b3b3b3] mb-1">
-                    Total Correct Predictions
-                  </label>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <label className="text-sm font-medium text-[#b3b3b3]">
+                      Correct Predictions
+                    </label>
+                    <InfoHint label="About correct predictions">
+                      Correct picks out of matches played so far this season.
+                    </InfoHint>
+                  </div>
                   <div className="text-lg text-[#00c851]">
                     {pointsData?.correct_predictions ?? 0}
+                    <span className="text-sm text-[#b3b3b3]">
+                      {" "}
+                      / {pointsData?.finished_matches ?? 0} finished
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <label className="text-sm font-medium text-[#b3b3b3]">
+                      Matches Predicted
+                    </label>
+                    <InfoHint label="About matches predicted">
+                      Total predictions you&apos;ve submitted, including
+                      upcoming matches.
+                    </InfoHint>
+                  </div>
+                  <div className="text-lg text-white">
+                    {pointsData?.predicted_matches ?? 0}
                   </div>
                 </div>
 
