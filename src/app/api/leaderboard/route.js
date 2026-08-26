@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth-helpers";
+import { getFinishedMatchesCount } from "@/lib/points";
 
 export const dynamic = "force-dynamic";
 
@@ -20,30 +21,31 @@ export async function GET() {
     });
 
     const userIds = grouped.map((g) => g.userId);
-    const [correctCounts, distinctMatches, users] = await Promise.all([
-      prisma.userPoints.groupBy({
-        by: ["userId"],
-        where: { userId: { in: userIds }, pointsEarned: { gt: 0 } },
-        _count: { _all: true },
-      }),
-      prisma.userPoints.findMany({
-        where: { userId: { in: userIds } },
-        distinct: ["userId", "matchId"],
-        select: { userId: true, matchId: true },
-      }),
-      prisma.user.findMany({
-        where: { id: { in: userIds } },
-        select: { id: true, email: true, displayName: true },
-      }),
-    ]);
+    const [correctCounts, predictedCounts, users, finishedMatches] =
+      await Promise.all([
+        prisma.userPoints.groupBy({
+          by: ["userId"],
+          where: { userId: { in: userIds }, pointsEarned: { gt: 0 } },
+          _count: { _all: true },
+        }),
+        prisma.prediction.groupBy({
+          by: ["userId"],
+          where: { userId: { in: userIds } },
+          _count: { _all: true },
+        }),
+        prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, email: true, displayName: true },
+        }),
+        getFinishedMatchesCount(),
+      ]);
 
     const correctMap = new Map(
       correctCounts.map((r) => [r.userId, r._count._all]),
     );
-    const matchesMap = new Map();
-    for (const row of distinctMatches) {
-      matchesMap.set(row.userId, (matchesMap.get(row.userId) ?? 0) + 1);
-    }
+    const predictedMap = new Map(
+      predictedCounts.map((r) => [r.userId, r._count._all]),
+    );
     const userMap = new Map(users.map((u) => [u.id, u]));
 
     const leaderboard = grouped.map((row, index) => {
@@ -52,8 +54,9 @@ export async function GET() {
         user_id: row.userId,
         display_name: u?.displayName || u?.email?.split("@")[0] || "Anonymous",
         predictions: row._sum.pointsEarned ?? 0,
-        matches_predicted: matchesMap.get(row.userId) ?? 0,
+        predicted_matches: predictedMap.get(row.userId) ?? 0,
         correct_predictions: correctMap.get(row.userId) ?? 0,
+        finished_matches: finishedMatches,
         rank: index + 1,
         isCurrentUser: currentUser?.id === row.userId,
       };
@@ -61,7 +64,7 @@ export async function GET() {
 
     // Append current user at the tail if they're outside the top N.
     if (currentUser && !leaderboard.some((e) => e.user_id === currentUser.id)) {
-      const [meAgg, meCorrect, meDistinct, meUser] = await Promise.all([
+      const [meAgg, meCorrect, mePredicted, meUser] = await Promise.all([
         prisma.userPoints.aggregate({
           where: { userId: currentUser.id },
           _sum: { pointsEarned: true },
@@ -69,11 +72,7 @@ export async function GET() {
         prisma.userPoints.count({
           where: { userId: currentUser.id, pointsEarned: { gt: 0 } },
         }),
-        prisma.userPoints.findMany({
-          where: { userId: currentUser.id },
-          distinct: ["matchId"],
-          select: { matchId: true },
-        }),
+        prisma.prediction.count({ where: { userId: currentUser.id } }),
         prisma.user.findUnique({
           where: { id: currentUser.id },
           select: { email: true, displayName: true },
@@ -85,8 +84,9 @@ export async function GET() {
         display_name:
           meUser?.displayName || meUser?.email?.split("@")[0] || "You",
         predictions: meAgg._sum.pointsEarned ?? 0,
-        matches_predicted: meDistinct.length,
+        predicted_matches: mePredicted,
         correct_predictions: meCorrect,
+        finished_matches: finishedMatches,
         rank: null,
         isCurrentUser: true,
       });

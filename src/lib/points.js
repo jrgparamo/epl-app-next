@@ -87,16 +87,12 @@ export async function calculateMatchPoints(matchId, homeActual, awayActual) {
  * @param {string} userId
  */
 export async function getUserPointsSummary(userId) {
-  const [totals, distinctMatches, correctCount, latest] = await Promise.all([
+  const [totals, predictedCount, correctCount, latest] = await Promise.all([
     prisma.userPoints.aggregate({
       where: { userId },
       _sum: { pointsEarned: true },
     }),
-    prisma.userPoints.findMany({
-      where: { userId },
-      distinct: ["matchId"],
-      select: { matchId: true },
-    }),
+    prisma.prediction.count({ where: { userId } }),
     prisma.userPoints.count({
       where: { userId, pointsEarned: { gt: 0 } },
     }),
@@ -110,7 +106,7 @@ export async function getUserPointsSummary(userId) {
   return {
     user_id: userId,
     total_points: totals._sum.pointsEarned ?? 0,
-    matches_predicted: distinctMatches.length,
+    predicted_matches: predictedCount,
     correct_predictions: correctCount,
     last_updated: latest?.calculatedAt ?? null,
   };
@@ -142,39 +138,61 @@ export async function getUserPointsSummaries(userIds) {
     correctCounts.map((r) => [r.userId, r._count._all]),
   );
 
-  const distinctMatches = await prisma.userPoints.findMany({
+  const predictedCounts = await prisma.prediction.groupBy({
+    by: ["userId"],
     where: { userId: { in: userIds } },
-    distinct: ["userId", "matchId"],
-    select: { userId: true, matchId: true },
+    _count: { _all: true },
   });
-  const matchesMap = new Map();
-  for (const row of distinctMatches) {
-    matchesMap.set(row.userId, (matchesMap.get(row.userId) ?? 0) + 1);
-  }
+  const predictedMap = new Map(
+    predictedCounts.map((r) => [r.userId, r._count._all]),
+  );
 
   const result = new Map();
   for (const row of rows) {
     result.set(row.userId, {
       user_id: row.userId,
       total_points: row._sum.pointsEarned ?? 0,
-      matches_predicted: matchesMap.get(row.userId) ?? 0,
+      predicted_matches: predictedMap.get(row.userId) ?? 0,
       correct_predictions: correctMap.get(row.userId) ?? 0,
       last_updated: row._max.calculatedAt ?? null,
     });
   }
-  // Ensure every requested user id is present, even if zero rows.
+  // Ensure every requested user id is present, even if they have no points rows
+  // yet (they may still have submitted predictions).
   for (const id of userIds) {
     if (!result.has(id)) {
       result.set(id, {
         user_id: id,
         total_points: 0,
-        matches_predicted: 0,
+        predicted_matches: predictedMap.get(id) ?? 0,
         correct_predictions: 0,
         last_updated: null,
       });
     }
   }
   return result;
+}
+
+/**
+ * Season-wide count of finished Premier League matches.
+ *
+ * Read from the latest `CronLog` marker written by the cron / lazy refresh (both
+ * already fetch `?status=FINISHED`), so leaderboards never trigger their own
+ * football-data request and can't breach the free-tier rate limit.
+ *
+ * @returns {Promise<number>}
+ */
+export async function getFinishedMatchesCount() {
+  const row = await prisma.cronLog.findFirst({
+    where: {
+      jobName: { in: ["cron_calculate_points", "points_lazy_refresh"] },
+      status: "completed",
+    },
+    orderBy: { createdAt: "desc" },
+    select: { metadata: true },
+  });
+  const count = row?.metadata?.finishedMatches;
+  return Number.isFinite(count) ? count : 0;
 }
 
 const FOOTBALL_DATA_BASE_URL = "https://api.football-data.org/v4";
@@ -236,9 +254,11 @@ export async function refreshRecentMatchPoints({
   const cutoff = Date.now() - recentMs;
   let processed = 0;
   let awarded = 0;
+  let finishedCount = 0;
 
   for (const match of matches) {
     if (match?.status !== "FINISHED" || !match?.score?.fullTime) continue;
+    finishedCount += 1;
     // Skip matches that finished well in the past; the daily cron backfills those.
     const updatedAt = match.lastUpdated
       ? new Date(match.lastUpdated).getTime()
@@ -263,6 +283,7 @@ export async function refreshRecentMatchPoints({
       jobName: "points_lazy_refresh",
       status: "completed",
       message: `Lazy refresh: ${processed} matches processed, ${awarded} points`,
+      metadata: { finishedMatches: finishedCount },
     },
   });
 

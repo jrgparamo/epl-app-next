@@ -7,8 +7,9 @@ const cacheKey = (userId) => `user_points_cache_${userId}`;
 
 const EMPTY_SUMMARY = {
   total_points: 0,
-  matches_predicted: 0,
+  predicted_matches: 0,
   correct_predictions: 0,
+  finished_matches: 0,
   last_updated: null,
 };
 
@@ -83,8 +84,9 @@ export function useUserPoints(user) {
         const data = await response.json();
         const summary = {
           total_points: data.total_points ?? 0,
-          matches_predicted: data.matches_predicted ?? 0,
+          predicted_matches: data.predicted_matches ?? 0,
           correct_predictions: data.correct_predictions ?? 0,
+          finished_matches: data.finished_matches ?? 0,
           last_updated: data.last_updated ?? null,
         };
         setPointsData(summary);
