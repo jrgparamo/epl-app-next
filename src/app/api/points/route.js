@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth-helpers";
 import {
   calculateMatchPoints,
   getUserPointsSummary,
+  getFinishedMatchesCount,
   refreshRecentMatchPoints,
 } from "@/lib/points";
 
@@ -20,11 +21,15 @@ export async function GET() {
       console.error("Points lazy refresh failed (non-fatal):", refreshError);
     }
 
-    const summary = await getUserPointsSummary(user.id);
+    const [summary, finishedMatches] = await Promise.all([
+      getUserPointsSummary(user.id),
+      getFinishedMatchesCount(),
+    ]);
     return NextResponse.json({
       total_points: summary.total_points,
-      matches_predicted: summary.matches_predicted,
+      predicted_matches: summary.predicted_matches,
       correct_predictions: summary.correct_predictions,
+      finished_matches: finishedMatches,
       last_updated: summary.last_updated,
     });
   } catch (error) {

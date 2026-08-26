@@ -43,6 +43,37 @@ The new system automatically calculates and stores user points in the database w
 - **1 point**: Correct match result (home win, away win, or draw)
 - **3 points**: Exact score prediction (includes the 1 point for correct result)
 
+## Prediction Stats
+
+Leaderboards and the account page expose three distinct stats. They are **not**
+interchangeable — each has a different scope and source:
+
+| Stat                  | Scope       | Source                                                 | Meaning                                                 |
+| --------------------- | ----------- | ------------------------------------------------------ | ------------------------------------------------------- |
+| `correct_predictions` | Per user    | `COUNT(user_points WHERE points_earned > 0)`           | Predictions that scored (correct result or exact score) |
+| `predicted_matches`   | Per user    | `COUNT(user_predictions WHERE user_id = ?)`            | Matches the user submitted a prediction for             |
+| `finished_matches`    | Season-wide | Latest `cron_logs` marker (`metadata.finishedMatches`) | Premier League matches played so far this season        |
+
+**Displayed ratio.** The leaderboards render `correct_predictions / finished_matches`
+(e.g. `5/20 correct`) — correct picks as a share of every match that has been
+played this season, so all users share the same denominator. The account page
+also shows `predicted_matches` on its own.
+
+> **Why `finished_matches` is not fetched per request.** Counting finished
+> matches requires football-data.org, whose free tier allows only **10 requests
+> per minute**. The leaderboards are hot endpoints, so fetching on every request
+> would breach that limit under concurrent load. Instead the count is recorded
+> whenever the cron (`cron_calculate_points`) or the lazy refresh
+> (`points_lazy_refresh`) already fetches `?status=FINISHED`, and stored in that
+> run's `cron_logs.metadata.finishedMatches`. `getFinishedMatchesCount()` reads
+> the latest marker from the DB, so leaderboards add **zero** football-data
+> calls. The value is fresh within one cron/lazy-refresh cycle.
+
+> **Note.** The legacy `matches_predicted` stat (distinct `match_id` in
+> `user_points`) was removed. Because a `user_points` row is only written when a
+> prediction scores, it always equalled `correct_predictions`, which made the old
+> `2/2 correct` display meaningless.
+
 ## Automatic Point Calculation
 
 ### Cron Job Setup
