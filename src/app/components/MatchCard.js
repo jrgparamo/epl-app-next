@@ -148,7 +148,10 @@ export default function MatchCard({
           <span className="text-xs text-muted-foreground">Premier League</span>
           <div className="flex items-center gap-1.5">
             {(match.status === "IN_PLAY" || match.status === "PAUSED") && (
-              <Badge variant="destructive" className="text-xs px-1.5 py-0">
+              <Badge
+                variant="destructive"
+                className="animate-live-blink text-xs px-1.5 py-0"
+              >
                 LIVE
               </Badge>
             )}

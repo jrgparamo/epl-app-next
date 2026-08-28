@@ -22,12 +22,11 @@
 - [ ] On load scroll to the next match
 - [ ] Cron jobs calculates all finished matches - can we just limit to all finished within the matchday?
 - [ ] Instead of fetching all matches - could we store the finished matches with their results in the db?
-- [ ] Show live score with blinking live chip
+- [x] Show live score with blinking live chip
 - [ ] Fix this [auth][warn][experimental-webauthn] Read more: https://warnings.authjs.dev
 - [ ] Fix this Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
       In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
       To prepare for this change:
   - If you want the current behavior, explicitly use 'sslmode=verify-full'
   - If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
-
-See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+    See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
