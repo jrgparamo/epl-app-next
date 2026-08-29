@@ -14,9 +14,10 @@ Covers the laundry‑list item: **"Add an easier way to see members choices."**
 - **Locked matches:** the fixture row is still shown with a "locked until
   kickoff" placeholder instead of the score.
 - **Matchday picker:** a `WeekSelector` on the standings view lets you choose
-  which matchday to compare (up to and including the current one). The picker
-  scopes the modal only — the leaderboard stays a season‑total ranking.
-  TODO: investigate changing the ranking based on the selected matchday
+  which matchday to compare (up to and including the current one). Picking a
+  matchday **reranks the leaderboard** to that week's points (isolated single
+  matchday) and scopes the comparison modal to it; an **Overall** chip returns to
+  the season‑total ranking (the default).
 
 ## Data facts
 
@@ -95,6 +96,33 @@ each showing the scoreline, a lock placeholder, or a dash, plus a points badge
   `selectedMatchday`; renders the `WeekSelector` and a single `MemberPicksModal`
   scoped to the selected matchday.
 
+### Matchday reranking — leaderboards (Option A: isolated week)
+
+Picking a matchday reranks the leaderboard by points earned **in that matchday
+only**; the **Overall** chip (`selectedMatchday === null`, the default) shows
+season totals.
+
+- `UserPoints` has `pointsEarned` per `matchId` (no matchday column). Matchday →
+  matchIds via the cached `fetchMatchesByMatchday(N)`, so no extra football‑data
+  call. Rank = one `groupBy` over `userPoints` filtered by those matchIds —
+  computed real‑time, no schema change or denormalized table.
+- `GET /api/leaderboard?matchday=N` and
+  `GET /api/leagues/[leagueId]/leaderboard?matchday=N` add a matchday branch
+  (absent = season, backward‑compatible). The league variant scopes the same
+  `groupBy` to member ids via `getMatchdayPointsSummaries(userIds, matchIds)` in
+  `src/lib/points.js`. `finished_matches` becomes the count of `FINISHED`
+  fixtures in that matchday. Users with zero points that week are omitted from
+  the global top‑50 but the caller is always appended.
+- `useLeaderboard(matchday, cacheable)` and
+  `useLeagueLeaderboard(leagueId, matchday, cacheable)` refetch on change and
+  memoize **past** matchdays (immutable); Overall and the live current matchday
+  always refetch.
+- The page marks a matchday cacheable only when `matchday < currentMatchday`.
+
+**Multi‑league note.** Predictions are per‑user and league‑independent (one
+`Prediction` per user per match), so opening a comparison from any shared league
+yields the identical modal — only the rank position differs per scope.
+
 ## Files
 
 Create:
@@ -107,22 +135,28 @@ Create:
 Modify:
 
 - `src/app/api/matches/route.js`
+- `src/app/api/leaderboard/route.js` (adds `?matchday=N` reranking)
+- `src/app/api/leagues/[leagueId]/leaderboard/route.js` (adds `?matchday=N`)
+- `src/lib/points.js` (adds `getMatchdayPointsSummaries`)
+- `src/hooks/useLeaderboard.js`, `src/hooks/useLeagues.js` (matchday + cache)
 - `src/app/components/GlobalLeaderboard.js`
 - `src/app/components/LeagueLeaderboard.js`
-- `src/app/leaderboard/page.js` (adds the `WeekSelector` matchday picker)
+- `src/app/leaderboard/page.js` (adds the `WeekSelector` picker + Overall chip)
 
 ## Verification
 
 - Tap a row on both leaderboards → modal opens; pre‑kickoff matches show locked;
   started/finished show the pick, result, and points; mobile = bottom sheet,
   desktop = dialog; closes on outside/esc.
-- The picker lists matchdays up to and including the current one and selecting
-  one scopes the modal; the header total for each side matches the sum of
+- The picker lists matchdays up to and including the current one; picking one
+  reranks the leaderboard to that week and scopes the modal; **Overall** restores
+  season totals. The modal header total for each side matches the sum of
   per‑match points.
-- Network: selecting a matchday fires no request; opening the modal fires exactly
-  one `/api/predictions/compare`; reopening the same user for a **past** matchday
-  fires none (the current matchday always refetches); no duplicate football‑data
-  call (cache shared with `/api/matches`).
+- Network: selecting **Overall**/current fires a leaderboard fetch; a past
+  matchday fetches once then serves from cache on reselect; opening the modal
+  fires exactly one `/api/predictions/compare`; reopening the same user for a
+  **past** matchday fires none (the current matchday always refetches); no
+  duplicate football‑data call (cache shared with `/api/matches`).
 - Security: endpoint returns 401 unauthenticated; pre‑kickoff match row carries
   `{ locked: true }` with no scores; no `email` anywhere in the payload.
 - `npm run lint` and editor diagnostics clean.

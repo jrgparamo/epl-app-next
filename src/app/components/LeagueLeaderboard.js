@@ -36,9 +36,17 @@ function RankBadge({ rank }) {
   );
 }
 
-export default function LeagueLeaderboard({ leagueId, onUserSelect }) {
-  const { leaderboard, league, loading, error } =
-    useLeagueLeaderboard(leagueId);
+export default function LeagueLeaderboard({
+  leagueId,
+  onUserSelect,
+  matchday,
+  cacheable,
+}) {
+  const { leaderboard, league, loading, error } = useLeagueLeaderboard(
+    leagueId,
+    matchday,
+    cacheable,
+  );
 
   if (!leagueId) {
     return (

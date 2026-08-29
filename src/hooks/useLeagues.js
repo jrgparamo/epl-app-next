@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 
+// Past-matchday league standings are immutable → cache them (see cacheable).
+const leagueLeaderboardCache = new Map();
+
 export function useLeagues() {
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -118,70 +121,74 @@ export function useLeagues() {
   };
 }
 
-export function useLeagueLeaderboard(leagueId) {
+export function useLeagueLeaderboard(
+  leagueId,
+  matchday = null,
+  cacheable = false,
+) {
   const [leaderboard, setLeaderboard] = useState([]);
   const [league, setLeague] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchLeagueLeaderboard = async () => {
-      if (!leagueId) return;
+    if (!leagueId) return;
 
+    const cacheKey = `league-lb:${leagueId}:${matchday ?? "season"}`;
+    let cancelled = false;
+
+    const apply = (data) => {
+      if (cancelled) return;
+      setLeaderboard(data.leaderboard);
+      setLeague(data.league);
+    };
+
+    if (cacheable) {
+      const cached = leagueLeaderboardCache.get(cacheKey);
+      if (cached) {
+        apply(cached);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+    }
+
+    const fetchLeagueLeaderboard = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await fetch(`/api/leagues/${leagueId}/leaderboard`);
+        const url = matchday
+          ? `/api/leagues/${leagueId}/leaderboard?matchday=${matchday}`
+          : `/api/leagues/${leagueId}/leaderboard`;
+        const response = await fetch(url);
 
         if (!response.ok) {
           throw new Error("Failed to fetch league leaderboard");
         }
 
         const data = await response.json();
-        setLeaderboard(data.leaderboard);
-        setLeague(data.league);
+        if (cacheable) leagueLeaderboardCache.set(cacheKey, data);
+        apply(data);
       } catch (err) {
+        if (cancelled) return;
         console.error("Error fetching league leaderboard:", err);
         setError(err.message);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchLeagueLeaderboard();
-  }, [leagueId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [leagueId, matchday, cacheable]);
 
   return {
     leaderboard,
     league,
     loading,
     error,
-    refetchLeaderboard: () => {
-      const fetchLeagueLeaderboard = async () => {
-        if (!leagueId) return;
-
-        setLoading(true);
-        setError(null);
-
-        try {
-          const response = await fetch(`/api/leagues/${leagueId}/leaderboard`);
-
-          if (!response.ok) {
-            throw new Error("Failed to fetch league leaderboard");
-          }
-
-          const data = await response.json();
-          setLeaderboard(data.leaderboard);
-          setLeague(data.league);
-        } catch (err) {
-          console.error("Error fetching league leaderboard:", err);
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchLeagueLeaderboard();
-    },
   };
 }
