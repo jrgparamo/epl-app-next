@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth-helpers";
 import { getFinishedMatchesCount } from "@/lib/points";
-import { fetchMatchesByMatchday } from "@/lib/matches-service";
+import { fetchMatchesThroughMatchday } from "@/lib/matches-service";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function GET(request) {
   const matchday = searchParams.get("matchday");
 
   if (matchday) {
-    return matchdayLeaderboard(matchday, currentUser);
+    return standingsThroughMatchday(matchday, currentUser);
   }
 
   try {
@@ -109,10 +109,10 @@ export async function GET(request) {
   }
 }
 
-// Isolated single-matchday ranking: points earned only in the given matchday.
-async function matchdayLeaderboard(matchday, currentUser) {
+// Cumulative standings through a matchday: points earned across matchdays 1..N.
+async function standingsThroughMatchday(matchday, currentUser) {
   try {
-    const matches = await fetchMatchesByMatchday(matchday);
+    const matches = await fetchMatchesThroughMatchday(matchday);
     const matchIds = matches.map((m) => String(m.id));
     const finishedMatches = matches.filter(
       (m) => m.status === "FINISHED",

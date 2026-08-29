@@ -37,6 +37,7 @@ function RankBadge({ rank }) {
 export default function GlobalLeaderboard({
   onUserSelect,
   matchday,
+  currentMatchday,
   cacheable,
 }) {
   const { leaderboard, loading, error } = useLeaderboard(matchday, cacheable);
@@ -65,7 +66,9 @@ export default function GlobalLeaderboard({
               Global Leaderboard
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {matchday ? `Matchday ${matchday}` : "Season total"}
+              {matchday && currentMatchday && matchday < currentMatchday
+                ? `Standings after Matchday ${matchday}`
+                : "Season total"}
             </p>
           </div>
         </div>

@@ -66,3 +66,12 @@ export async function fetchMatchesByMatchday(matchday, { status } = {}) {
     })) || []
   );
 }
+
+// All season fixtures with matchday <= N (cumulative through a matchday).
+// Uses the shared `matches-all` cache entry, so it costs at most one extra
+// football-data call regardless of how many matchdays are requested.
+export async function fetchMatchesThroughMatchday(matchday) {
+  const n = Number(matchday);
+  const all = await fetchMatchesByMatchday(null);
+  return all.filter((m) => Number(m.matchday) <= n);
+}
