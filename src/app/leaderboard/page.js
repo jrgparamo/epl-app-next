@@ -7,6 +7,7 @@ import BottomNavigation from "../components/BottomNavigation";
 import LeagueManager from "../components/LeagueManager";
 import LeagueLeaderboard from "../components/LeagueLeaderboard";
 import GlobalLeaderboard from "../components/GlobalLeaderboard";
+import MemberPicksModal from "../components/MemberPicksModal";
 import { useAuth } from "../components/AuthProvider";
 import { usePoints } from "../components/PointsProvider";
 
@@ -17,6 +18,8 @@ export default function LeaderboardPage() {
 
   const [selectedLeagueId, setSelectedLeagueId] = useState(null);
   const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(true);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [currentMatchday, setCurrentMatchday] = useState(null);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -24,6 +27,22 @@ export default function LeaderboardPage() {
       router.push("/");
     }
   }, [user, loading, router]);
+
+  // Current matchday drives the member picks comparison modal.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/matchday")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.currentMatchday) {
+          setCurrentMatchday(data.currentMatchday);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleNavigationChange = (tabId) => {
     switch (tabId) {
@@ -106,7 +125,7 @@ export default function LeaderboardPage() {
 
           {showGlobalLeaderboard ? (
             /* Global Leaderboard — site-wide ranking across all leagues */
-            <GlobalLeaderboard />
+            <GlobalLeaderboard onUserSelect={setSelectedMember} />
           ) : (
             /* League Management and Leaderboards */
             <>
@@ -114,11 +133,22 @@ export default function LeaderboardPage() {
                 onLeagueSelect={handleLeagueSelect}
                 selectedLeagueId={selectedLeagueId}
               />
-              <LeagueLeaderboard leagueId={selectedLeagueId} />
+              <LeagueLeaderboard
+                leagueId={selectedLeagueId}
+                onUserSelect={setSelectedMember}
+              />
             </>
           )}
         </div>
       </main>
+
+      <MemberPicksModal
+        isOpen={!!selectedMember}
+        userId={selectedMember?.user_id}
+        displayName={selectedMember?.display_name}
+        matchday={currentMatchday}
+        onClose={() => setSelectedMember(null)}
+      />
 
       <BottomNavigation
         activeTab="leaderboard"

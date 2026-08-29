@@ -34,7 +34,7 @@ function RankBadge({ rank }) {
   );
 }
 
-export default function GlobalLeaderboard() {
+export default function GlobalLeaderboard({ onUserSelect }) {
   const { leaderboard, loading, error } = useLeaderboard();
 
   if (loading) return <LoadingSpinner text="Loading standings…" />;
@@ -79,8 +79,25 @@ export default function GlobalLeaderboard() {
             {leaderboard.map((player) => (
               <li
                 key={player.user_id}
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  onUserSelect?.({
+                    user_id: player.user_id,
+                    display_name: player.display_name,
+                  })
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onUserSelect?.({
+                      user_id: player.user_id,
+                      display_name: player.display_name,
+                    });
+                  }
+                }}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3",
+                  "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/50 focus:outline-none focus-visible:bg-muted/50",
                   player.isCurrentUser && "bg-primary/5",
                 )}
               >
