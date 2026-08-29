@@ -32,15 +32,14 @@ export default function LeaderboardPage() {
   }, [user, loading, router]);
 
   // Reuses the client-cached matchday shared with the matches view (no new
-  // request when already loaded). Matchdays up to and including the current one
-  // can be compared; default to the current matchday.
+  // request when already loaded). `selectedMatchday === null` means the Overall
+  // (season) ranking; picking a matchday reranks to that week only.
   useEffect(() => {
     let cancelled = false;
     getCurrentMatchday()
       .then((md) => {
         if (!cancelled && md) {
           setCurrentMatchday(md);
-          setSelectedMatchday(md);
         }
       })
       .catch(() => {});
@@ -50,6 +49,14 @@ export default function LeaderboardPage() {
   }, []);
 
   const availableMatchdays = currentMatchday ? currentMatchday : 0;
+  // Only past matchdays are immutable and safe to cache client-side.
+  const leaderboardCacheable =
+    selectedMatchday != null &&
+    currentMatchday != null &&
+    selectedMatchday < currentMatchday;
+  // The modal always compares a concrete matchday; fall back to current when
+  // the leaderboard is on Overall.
+  const modalMatchday = selectedMatchday ?? currentMatchday;
 
   const handleNavigationChange = (tabId) => {
     switch (tabId) {
@@ -130,18 +137,41 @@ export default function LeaderboardPage() {
             </button>
           </div>
 
-          {availableMatchdays >= 1 ? (
-            <WeekSelector
-              currentWeek={selectedMatchday}
-              onWeekChange={setSelectedMatchday}
-              totalWeeks={availableMatchdays}
-              currentMatchday={currentMatchday}
-            />
-          ) : null}
+          <div className="mb-4 space-y-2">
+            <div className="flex items-center gap-2 px-1">
+              <button
+                onClick={() => setSelectedMatchday(null)}
+                className={`h-9 px-4 rounded-full text-xs font-medium border transition-colors shrink-0 ${
+                  selectedMatchday === null
+                    ? "bg-primary text-primary-foreground border-transparent"
+                    : "bg-muted text-muted-foreground border-border hover:bg-muted/70"
+                }`}
+              >
+                Overall
+              </button>
+              <p className="text-xs text-muted-foreground">
+                {selectedMatchday === null
+                  ? "Season standings"
+                  : `Ranked by Matchday ${selectedMatchday}`}
+              </p>
+            </div>
+            {availableMatchdays >= 1 ? (
+              <WeekSelector
+                currentWeek={selectedMatchday}
+                onWeekChange={setSelectedMatchday}
+                totalWeeks={availableMatchdays}
+                currentMatchday={currentMatchday}
+              />
+            ) : null}
+          </div>
 
           {showGlobalLeaderboard ? (
             /* Global Leaderboard — site-wide ranking across all leagues */
-            <GlobalLeaderboard onUserSelect={setSelectedMember} />
+            <GlobalLeaderboard
+              onUserSelect={setSelectedMember}
+              matchday={selectedMatchday}
+              cacheable={leaderboardCacheable}
+            />
           ) : (
             /* League Management and Leaderboards */
             <>
@@ -152,6 +182,8 @@ export default function LeaderboardPage() {
               <LeagueLeaderboard
                 leagueId={selectedLeagueId}
                 onUserSelect={setSelectedMember}
+                matchday={selectedMatchday}
+                cacheable={leaderboardCacheable}
               />
             </>
           )}
@@ -162,7 +194,7 @@ export default function LeaderboardPage() {
         isOpen={!!selectedMember}
         userId={selectedMember?.user_id}
         displayName={selectedMember?.display_name}
-        matchday={selectedMatchday}
+        matchday={modalMatchday}
         currentMatchday={currentMatchday}
         onClose={() => setSelectedMember(null)}
       />
