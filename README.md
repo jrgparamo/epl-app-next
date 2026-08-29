@@ -198,7 +198,7 @@ src/
 - **Auth.js v5**: Replaced Google OAuth / Supabase Auth with passwordless magic-link email and WebAuthn passkeys
 - **Prisma Schema**: 10 tables defined in `prisma/schema.prisma` covering auth, predictions, points, leagues, cron audit logs, and rate limiting — see [SETUP.md](SETUP.md#database-tables-reference) for the full table reference
 - **Server-side Points**: Points calculated and stored in `user_points` table via cron job; no longer computed client-side from localStorage
-- **Private Leagues**: Users can create and join private prediction leagues with unique join codes and per-league leaderboards
+- **Private Leagues**: Users can create and join private prediction leagues with unique join codes and per-league leaderboards (standings tab temporarily hidden while only the Premier League is supported)
 - **Rate Limiting**: Magic-link sends capped at 5 per email per 15 minutes via the `rate_limits` table
 
 **Code Refactoring (August 2025)**
