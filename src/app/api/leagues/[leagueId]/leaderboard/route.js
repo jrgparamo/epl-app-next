@@ -6,7 +6,7 @@ import {
   getMatchdayPointsSummaries,
   getFinishedMatchesCount,
 } from "@/lib/points";
-import { fetchMatchesByMatchday } from "@/lib/matches-service";
+import { fetchMatchesThroughMatchday } from "@/lib/matches-service";
 
 export async function GET(request, { params }) {
   const { leagueId } = await params;
@@ -51,7 +51,7 @@ export async function GET(request, { params }) {
     let pointsByUser;
     let finishedMatches;
     if (matchday) {
-      const matches = await fetchMatchesByMatchday(matchday);
+      const matches = await fetchMatchesThroughMatchday(matchday);
       const matchIds = matches.map((m) => String(m.id));
       finishedMatches = matches.filter((m) => m.status === "FINISHED").length;
       pointsByUser = await getMatchdayPointsSummaries(memberUserIds, matchIds);
