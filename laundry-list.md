@@ -21,6 +21,7 @@
 - [ ] Add click on season total for breakdown
 
 - [ ] On load scroll to the next match
+- [ ] ON matches view on touch of match card show current league users picks
 - [ ] Cron jobs calculates all finished matches - can we just limit to all finished within the matchday?
 
 - [ ] Fix this [auth][warn][experimental-webauthn] Read more: https://warnings.authjs.dev
