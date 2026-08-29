@@ -34,8 +34,12 @@ function RankBadge({ rank }) {
   );
 }
 
-export default function GlobalLeaderboard({ onUserSelect }) {
-  const { leaderboard, loading, error } = useLeaderboard();
+export default function GlobalLeaderboard({
+  onUserSelect,
+  matchday,
+  cacheable,
+}) {
+  const { leaderboard, loading, error } = useLeaderboard(matchday, cacheable);
 
   if (loading) return <LoadingSpinner text="Loading standings…" />;
 
@@ -61,7 +65,7 @@ export default function GlobalLeaderboard({ onUserSelect }) {
               Global Leaderboard
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Top players across all leagues
+              {matchday ? `Matchday ${matchday}` : "Season total"}
             </p>
           </div>
         </div>
