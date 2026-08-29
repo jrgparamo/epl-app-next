@@ -8,8 +8,10 @@ import LeagueManager from "../components/LeagueManager";
 import LeagueLeaderboard from "../components/LeagueLeaderboard";
 import GlobalLeaderboard from "../components/GlobalLeaderboard";
 import MemberPicksModal from "../components/MemberPicksModal";
+import WeekSelector from "../components/WeekSelector";
 import { useAuth } from "../components/AuthProvider";
 import { usePoints } from "../components/PointsProvider";
+import { getCurrentMatchday } from "@/lib/api";
 
 export default function LeaderboardPage() {
   const { user, loading } = useAuth();
@@ -20,6 +22,7 @@ export default function LeaderboardPage() {
   const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(true);
   const [selectedMember, setSelectedMember] = useState(null);
   const [currentMatchday, setCurrentMatchday] = useState(null);
+  const [selectedMatchday, setSelectedMatchday] = useState(null);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -28,14 +31,16 @@ export default function LeaderboardPage() {
     }
   }, [user, loading, router]);
 
-  // Current matchday drives the member picks comparison modal.
+  // Reuses the client-cached matchday shared with the matches view (no new
+  // request when already loaded). Matchdays up to and including the current one
+  // can be compared; default to the current matchday.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/matchday")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.currentMatchday) {
-          setCurrentMatchday(data.currentMatchday);
+    getCurrentMatchday()
+      .then((md) => {
+        if (!cancelled && md) {
+          setCurrentMatchday(md);
+          setSelectedMatchday(md);
         }
       })
       .catch(() => {});
@@ -43,6 +48,8 @@ export default function LeaderboardPage() {
       cancelled = true;
     };
   }, []);
+
+  const availableMatchdays = currentMatchday ? currentMatchday : 0;
 
   const handleNavigationChange = (tabId) => {
     switch (tabId) {
@@ -123,6 +130,15 @@ export default function LeaderboardPage() {
             </button>
           </div>
 
+          {availableMatchdays >= 1 ? (
+            <WeekSelector
+              currentWeek={selectedMatchday}
+              onWeekChange={setSelectedMatchday}
+              totalWeeks={availableMatchdays}
+              currentMatchday={currentMatchday}
+            />
+          ) : null}
+
           {showGlobalLeaderboard ? (
             /* Global Leaderboard — site-wide ranking across all leagues */
             <GlobalLeaderboard onUserSelect={setSelectedMember} />
@@ -146,7 +162,8 @@ export default function LeaderboardPage() {
         isOpen={!!selectedMember}
         userId={selectedMember?.user_id}
         displayName={selectedMember?.display_name}
-        matchday={currentMatchday}
+        matchday={selectedMatchday}
+        currentMatchday={currentMatchday}
         onClose={() => setSelectedMember(null)}
       />
 
