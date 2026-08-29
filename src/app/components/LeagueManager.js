@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadingSpinner } from "./LoadingSpinner";
-import { cn } from "@/lib/utils";
 import {
   RiAddLine,
   RiLoginBoxLine,
@@ -30,7 +29,7 @@ import {
   RiDeleteBinLine,
 } from "@remixicon/react";
 
-export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
+export default function LeagueManager() {
   const { leagues, loading, error, createLeague, joinLeague, deleteLeague } =
     useLeagues();
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -56,10 +55,9 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
     setActionLoading(true);
     setActionError(null);
     try {
-      const newLeague = await createLeague(createForm.name, createForm.description);
+      await createLeague(createForm.name, createForm.description);
       setCreateForm({ name: "", description: "" });
       setShowCreateForm(false);
-      onLeagueSelect(newLeague.id);
     } catch (err) {
       setActionError(err.message);
     } finally {
@@ -73,10 +71,9 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
     setActionLoading(true);
     setActionError(null);
     try {
-      const joinedLeague = await joinLeague(joinCode.trim());
+      await joinLeague(joinCode.trim());
       setJoinCode("");
       setShowJoinForm(false);
-      onLeagueSelect(joinedLeague.id);
     } catch (err) {
       setActionError(err.message);
     } finally {
@@ -90,7 +87,6 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
     setActionError(null);
     try {
       await deleteLeague(deleteModal.leagueId);
-      if (selectedLeagueId === deleteModal.leagueId) onLeagueSelect(null);
       setDeleteModal({ isOpen: false, leagueId: "", leagueName: "" });
     } catch (err) {
       setActionError(err.message);
@@ -112,7 +108,11 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
                 variant="outline"
                 size="sm"
                 className="gap-1.5 h-8 text-xs"
-                onClick={() => { setShowJoinForm((v) => !v); setShowCreateForm(false); setActionError(null); }}
+                onClick={() => {
+                  setShowJoinForm((v) => !v);
+                  setShowCreateForm(false);
+                  setActionError(null);
+                }}
               >
                 <RiLoginBoxLine className="h-3.5 w-3.5" />
                 Join
@@ -120,7 +120,11 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
               <Button
                 size="sm"
                 className="gap-1.5 h-8 text-xs"
-                onClick={() => { setShowCreateForm((v) => !v); setShowJoinForm(false); setActionError(null); }}
+                onClick={() => {
+                  setShowCreateForm((v) => !v);
+                  setShowJoinForm(false);
+                  setActionError(null);
+                }}
               >
                 <RiAddLine className="h-3.5 w-3.5" />
                 Create
@@ -147,11 +151,15 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
               <form onSubmit={handleCreateLeague} className="space-y-3">
                 <h3 className="text-sm font-medium">Create New League</h3>
                 <div className="space-y-1.5">
-                  <Label htmlFor="league-name" className="text-xs">League Name</Label>
+                  <Label htmlFor="league-name" className="text-xs">
+                    League Name
+                  </Label>
                   <Input
                     id="league-name"
                     value={createForm.name}
-                    onChange={(e) => setCreateForm((p) => ({ ...p, name: e.target.value }))}
+                    onChange={(e) =>
+                      setCreateForm((p) => ({ ...p, name: e.target.value }))
+                    }
                     placeholder="Enter league name"
                     maxLength={100}
                     required
@@ -159,20 +167,40 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="league-desc" className="text-xs">Description (optional)</Label>
+                  <Label htmlFor="league-desc" className="text-xs">
+                    Description (optional)
+                  </Label>
                   <Input
                     id="league-desc"
                     value={createForm.description}
-                    onChange={(e) => setCreateForm((p) => ({ ...p, description: e.target.value }))}
+                    onChange={(e) =>
+                      setCreateForm((p) => ({
+                        ...p,
+                        description: e.target.value,
+                      }))
+                    }
                     placeholder="Describe your league"
                     className="h-9"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" size="sm" disabled={actionLoading || !createForm.name.trim()} className="flex-1">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={actionLoading || !createForm.name.trim()}
+                    className="flex-1"
+                  >
                     {actionLoading ? "Creating…" : "Create"}
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => { setShowCreateForm(false); setActionError(null); }}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      setActionError(null);
+                    }}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -189,7 +217,9 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
               <form onSubmit={handleJoinLeague} className="space-y-3">
                 <h3 className="text-sm font-medium">Join a League</h3>
                 <div className="space-y-1.5">
-                  <Label htmlFor="join-code" className="text-xs">Join Code</Label>
+                  <Label htmlFor="join-code" className="text-xs">
+                    Join Code
+                  </Label>
                   <Input
                     id="join-code"
                     value={joinCode}
@@ -201,10 +231,23 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" size="sm" disabled={actionLoading || !joinCode.trim()} className="flex-1">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={actionLoading || !joinCode.trim()}
+                    className="flex-1"
+                  >
                     {actionLoading ? "Joining…" : "Join"}
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => { setShowJoinForm(false); setActionError(null); }}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowJoinForm(false);
+                      setActionError(null);
+                    }}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -223,26 +266,22 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
         ) : (
           <div className="divide-y divide-border">
             {leagues.map((league) => (
-              <div
-                key={league.id}
-                className={cn(
-                  "px-4 py-3 cursor-pointer transition-colors",
-                  selectedLeagueId === league.id
-                    ? "bg-primary/5 border-l-2 border-l-primary"
-                    : "hover:bg-accent"
-                )}
-                onClick={() => onLeagueSelect(league.id)}
-              >
+              <div key={league.id} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                    <span className="text-sm font-medium truncate">{league.name}</span>
+                    <span className="text-sm font-medium truncate">
+                      {league.name}
+                    </span>
                     {league.isAdmin && (
                       <Badge className="text-[10px] px-1.5 py-0 h-4 bg-yellow-500/20 text-yellow-400 border-yellow-500/30 border">
                         Admin
                       </Badge>
                     )}
                     {league.isCreator && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-1.5 py-0 h-4"
+                      >
                         Creator
                       </Badge>
                     )}
@@ -264,7 +303,10 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
                       variant="ghost"
                       size="sm"
                       className="h-6 px-1.5 text-xs gap-1"
-                      onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(league.joinCode); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(league.joinCode);
+                      }}
                     >
                       <RiFileCopyLine className="h-3 w-3" />
                     </Button>
@@ -272,7 +314,15 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
                       variant="ghost"
                       size="sm"
                       className="h-6 px-1.5 text-xs gap-1"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQrModal({ isOpen: true, joinCode: league.joinCode, leagueName: league.name }); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setQrModal({
+                          isOpen: true,
+                          joinCode: league.joinCode,
+                          leagueName: league.name,
+                        });
+                      }}
                     >
                       <RiQrCodeLine className="h-3 w-3" />
                     </Button>
@@ -280,7 +330,14 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
                       variant="ghost"
                       size="sm"
                       className="h-6 px-1.5 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
-                      onClick={(e) => { e.stopPropagation(); setDeleteModal({ isOpen: true, leagueId: league.id, leagueName: league.name }); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteModal({
+                          isOpen: true,
+                          leagueId: league.id,
+                          leagueName: league.name,
+                        });
+                      }}
                     >
                       <RiDeleteBinLine className="h-3 w-3" />
                     </Button>
@@ -295,7 +352,9 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
       {/* QR Code Sheet */}
       <QRCodeModal
         isOpen={qrModal.isOpen}
-        onClose={() => setQrModal({ isOpen: false, joinCode: "", leagueName: "" })}
+        onClose={() =>
+          setQrModal({ isOpen: false, joinCode: "", leagueName: "" })
+        }
         joinCode={qrModal.joinCode}
         leagueName={qrModal.leagueName}
       />
@@ -304,24 +363,29 @@ export default function LeagueManager({ onLeagueSelect, selectedLeagueId }) {
       <AlertDialog
         open={deleteModal.isOpen}
         onOpenChange={(open) => {
-          if (!open) setDeleteModal({ isOpen: false, leagueId: "", leagueName: "" });
+          if (!open)
+            setDeleteModal({ isOpen: false, leagueId: "", leagueName: "" });
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete League</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete &quot;{deleteModal.leagueName}&quot;? This cannot be undone.
-              All members will be removed permanently.
+              Delete &quot;{deleteModal.leagueName}&quot;? This cannot be
+              undone. All members will be removed permanently.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {actionError && (
             <Alert variant="destructive" className="py-2">
-              <AlertDescription className="text-xs">{actionError}</AlertDescription>
+              <AlertDescription className="text-xs">
+                {actionError}
+              </AlertDescription>
             </Alert>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={actionLoading}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={handleDeleteLeague}

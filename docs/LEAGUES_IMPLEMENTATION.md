@@ -31,12 +31,10 @@ The league system allows users to create and join private groups to compete with
 ### Tables Created
 
 1. **`leagues`**
-
    - Stores league information (name, description, join code, creator)
    - Has member limits (default 100) and active status
 
 2. **`league_members`**
-
    - Many-to-many relationship between users and leagues
    - Tracks join dates and admin status
    - Prevents duplicate memberships
@@ -84,9 +82,15 @@ The league system allows users to create and join private groups to compete with
 
 ### `LeagueManager`
 
-- Displays user's leagues with join/create options
-- Handles league selection for leaderboard display
-- Shows admin status and join codes for owned leagues
+- Lives in the Account tab
+- Create, join, and delete leagues
+- Shows admin status, join codes, and QR sharing for owned leagues
+
+### `LeagueSelector`
+
+- Lives in the League Leaderboards tab
+- Lists the user's joined leagues and selects one for standings
+- Shows join codes and QR sharing for owned leagues
 
 ### `LeagueLeaderboard`
 
@@ -103,26 +107,23 @@ The league system allows users to create and join private groups to compete with
 ## Usage Flow
 
 1. **Creating a League**:
-
-   - User clicks "Create League"
+   - In the Account tab, user clicks "Create"
    - Fills in name and optional description
    - System generates unique join code
    - User becomes admin and first member
 
 2. **Joining a League**:
-
-   - User receives join code from friend
-   - Enters code in "Join League" form
+   - In the Account tab, user clicks "Join"
+   - Enters the join code received from a friend
    - System validates code and adds user to league
 
 3. **Viewing Leaderboards**:
-
    - User switches between Global and League tabs
-   - Selects specific league from their list
+   - Selects a joined league from the list in the League Leaderboards tab
    - Views rankings within that league only
 
 4. **Sharing Leagues**:
-   - League creator/admin can copy join code
+   - League creator/admin can copy the join code from the Account or League Leaderboards tab
    - QR code modal provides visual sharing
    - Native share API for mobile convenience
 

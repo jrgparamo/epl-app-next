@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import BottomNavigation from "../components/BottomNavigation";
-import LeagueManager from "../components/LeagueManager";
+import LeagueSelector from "../components/LeagueSelector";
 import LeagueLeaderboard from "../components/LeagueLeaderboard";
 import GlobalLeaderboard from "../components/GlobalLeaderboard";
 import MemberPicksModal from "../components/MemberPicksModal";
@@ -173,9 +173,9 @@ export default function LeaderboardPage() {
               cacheable={leaderboardCacheable}
             />
           ) : (
-            /* League Management and Leaderboards */
+            /* League selection and standings */
             <>
-              <LeagueManager
+              <LeagueSelector
                 onLeagueSelect={handleLeagueSelect}
                 selectedLeagueId={selectedLeagueId}
               />
