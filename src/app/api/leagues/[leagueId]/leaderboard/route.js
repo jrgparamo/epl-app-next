@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-helpers";
-import { getUserPointsSummaries, getFinishedMatchesCount } from "@/lib/points";
+import {
+  getUserPointsSummaries,
+  getMatchdayPointsSummaries,
+  getFinishedMatchesCount,
+} from "@/lib/points";
+import { fetchMatchesByMatchday } from "@/lib/matches-service";
 
-export async function GET(_request, { params }) {
+export async function GET(request, { params }) {
   const { leagueId } = await params;
   const { user, response } = await requireUser();
   if (response) return response;
+
+  const { searchParams } = new URL(request.url);
+  const matchday = searchParams.get("matchday");
 
   try {
     // Access control: caller must be a member.
@@ -39,10 +47,20 @@ export async function GET(_request, { params }) {
     }
 
     const memberUserIds = league.members.map((m) => m.userId);
-    const [pointsByUser, finishedMatches] = await Promise.all([
-      getUserPointsSummaries(memberUserIds),
-      getFinishedMatchesCount(),
-    ]);
+
+    let pointsByUser;
+    let finishedMatches;
+    if (matchday) {
+      const matches = await fetchMatchesByMatchday(matchday);
+      const matchIds = matches.map((m) => String(m.id));
+      finishedMatches = matches.filter((m) => m.status === "FINISHED").length;
+      pointsByUser = await getMatchdayPointsSummaries(memberUserIds, matchIds);
+    } else {
+      [pointsByUser, finishedMatches] = await Promise.all([
+        getUserPointsSummaries(memberUserIds),
+        getFinishedMatchesCount(),
+      ]);
+    }
 
     // Sort by total points desc, tie-break on joinedAt asc.
     const enriched = league.members

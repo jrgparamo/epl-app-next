@@ -174,6 +174,70 @@ export async function getUserPointsSummaries(userIds) {
 }
 
 /**
+ * Per-matchday points summaries for a fixed set of users, scoped to the given
+ * match ids. Same shape as {@link getUserPointsSummaries} but points/correct are
+ * counted only for those matches. Users with no rows still appear with zeros.
+ *
+ * @param {string[]} userIds
+ * @param {string[]} matchIds
+ */
+export async function getMatchdayPointsSummaries(userIds, matchIds) {
+  if (!userIds?.length || !matchIds?.length) {
+    const empty = new Map();
+    for (const id of userIds ?? []) {
+      empty.set(id, {
+        user_id: id,
+        total_points: 0,
+        predicted_matches: 0,
+        correct_predictions: 0,
+      });
+    }
+    return empty;
+  }
+
+  const [rows, correctCounts, predictedCounts] = await Promise.all([
+    prisma.userPoints.groupBy({
+      by: ["userId"],
+      where: { userId: { in: userIds }, matchId: { in: matchIds } },
+      _sum: { pointsEarned: true },
+    }),
+    prisma.userPoints.groupBy({
+      by: ["userId"],
+      where: {
+        userId: { in: userIds },
+        matchId: { in: matchIds },
+        pointsEarned: { gt: 0 },
+      },
+      _count: { _all: true },
+    }),
+    prisma.prediction.groupBy({
+      by: ["userId"],
+      where: { userId: { in: userIds }, matchId: { in: matchIds } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const sumMap = new Map(rows.map((r) => [r.userId, r._sum.pointsEarned ?? 0]));
+  const correctMap = new Map(
+    correctCounts.map((r) => [r.userId, r._count._all]),
+  );
+  const predictedMap = new Map(
+    predictedCounts.map((r) => [r.userId, r._count._all]),
+  );
+
+  const result = new Map();
+  for (const id of userIds) {
+    result.set(id, {
+      user_id: id,
+      total_points: sumMap.get(id) ?? 0,
+      predicted_matches: predictedMap.get(id) ?? 0,
+      correct_predictions: correctMap.get(id) ?? 0,
+    });
+  }
+  return result;
+}
+
+/**
  * Season-wide count of finished Premier League matches.
  *
  * Read from the latest `CronLog` marker written by the cron / lazy refresh (both
