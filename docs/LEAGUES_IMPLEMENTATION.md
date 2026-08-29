@@ -4,6 +4,8 @@
 
 The league system allows users to create and join private groups to compete with specific sets of users, in addition to the global leaderboard. Users can join multiple leagues and see separate leaderboards for each.
 
+> **Status:** The League Leaderboards tab is currently hidden behind the `LEAGUE_LEADERBOARDS_ENABLED` flag in [`src/lib/features.js`](../src/lib/features.js). Only the English Premier League is supported today, so per-league standings are shelved until multi-league support (La Liga, Liga MX, Serie A, etc.) returns. League create/join/delete remains available in the Account tab. Set the flag to `true` to re-enable the tab.
+
 ## Features
 
 ### 1. League Management
@@ -88,7 +90,7 @@ The league system allows users to create and join private groups to compete with
 
 ### `LeagueSelector`
 
-- Lives in the League Leaderboards tab
+- Lives in the League Leaderboards tab (currently hidden via the `LEAGUE_LEADERBOARDS_ENABLED` flag)
 - Lists the user's joined leagues and selects one for standings
 - Shows join codes and QR sharing for owned leagues
 

@@ -12,6 +12,7 @@ import WeekSelector from "../components/WeekSelector";
 import { useAuth } from "../components/AuthProvider";
 import { usePoints } from "../components/PointsProvider";
 import { getCurrentMatchday } from "@/lib/api";
+import { LEAGUE_LEADERBOARDS_ENABLED } from "@/lib/features";
 
 export default function LeaderboardPage() {
   const { user, loading } = useAuth();
@@ -113,29 +114,31 @@ export default function LeaderboardPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24">
         <div className="space-y-6">
-          {/* Tab Navigation */}
-          <div className="flex space-x-2 mb-6">
-            <button
-              onClick={showGlobal}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                showGlobalLeaderboard
-                  ? "bg-[#00c851] text-white"
-                  : "bg-[#2d2d2d] text-[#b3b3b3] hover:bg-[#404040]"
-              }`}
-            >
-              Global Leaderboard
-            </button>
-            <button
-              onClick={() => setShowGlobalLeaderboard(false)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                !showGlobalLeaderboard
-                  ? "bg-[#00c851] text-white"
-                  : "bg-[#2d2d2d] text-[#b3b3b3] hover:bg-[#404040]"
-              }`}
-            >
-              League Leaderboards
-            </button>
-          </div>
+          {/* League Leaderboards tab hidden until multi-league support returns */}
+          {LEAGUE_LEADERBOARDS_ENABLED && (
+            <div className="flex space-x-2 mb-6">
+              <button
+                onClick={showGlobal}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  showGlobalLeaderboard
+                    ? "bg-[#00c851] text-white"
+                    : "bg-[#2d2d2d] text-[#b3b3b3] hover:bg-[#404040]"
+                }`}
+              >
+                Global Leaderboard
+              </button>
+              <button
+                onClick={() => setShowGlobalLeaderboard(false)}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  !showGlobalLeaderboard
+                    ? "bg-[#00c851] text-white"
+                    : "bg-[#2d2d2d] text-[#b3b3b3] hover:bg-[#404040]"
+                }`}
+              >
+                League Leaderboards
+              </button>
+            </div>
+          )}
 
           <div className="mb-4 space-y-2">
             <div className="flex items-center gap-2 px-1">
@@ -165,14 +168,7 @@ export default function LeaderboardPage() {
             ) : null}
           </div>
 
-          {showGlobalLeaderboard ? (
-            /* Global Leaderboard — site-wide ranking across all leagues */
-            <GlobalLeaderboard
-              onUserSelect={setSelectedMember}
-              matchday={selectedMatchday}
-              cacheable={leaderboardCacheable}
-            />
-          ) : (
+          {LEAGUE_LEADERBOARDS_ENABLED && !showGlobalLeaderboard ? (
             /* League selection and standings */
             <>
               <LeagueSelector
@@ -186,6 +182,13 @@ export default function LeaderboardPage() {
                 cacheable={leaderboardCacheable}
               />
             </>
+          ) : (
+            /* Global Leaderboard — site-wide ranking across all leagues */
+            <GlobalLeaderboard
+              onUserSelect={setSelectedMember}
+              matchday={selectedMatchday}
+              cacheable={leaderboardCacheable}
+            />
           )}
         </div>
       </main>

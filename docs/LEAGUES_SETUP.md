@@ -38,12 +38,13 @@ After running the migration, you can test the league system:
    - On the `/account` page, click "Join"
    - Enter the 6-character code
 
-4. **Test League Selection**:
+4. **Test League Selection** (tab hidden by default):
+   - Set `LEAGUE_LEADERBOARDS_ENABLED` to `true` in `src/lib/features.js` to show the tab
    - Go to `/leaderboard` and switch to the "League Leaderboards" tab
    - Select a joined league to view its standings
 
 5. **Test QR Code Sharing**:
-   - As a league creator, click the "QR" button (Account or League Leaderboards tab)
+   - As a league creator, click the "QR" button in the Account tab
    - Verify QR code modal opens
    - Test copy/share functionality
 
