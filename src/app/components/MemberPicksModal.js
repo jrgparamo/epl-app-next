@@ -154,13 +154,18 @@ export default function MemberPicksModal({
   userId,
   displayName,
   matchday,
+  currentMatchday,
   isOpen,
   onClose,
 }) {
   const isMobile = useIsMobile();
+  // Only past matchdays are immutable; never cache the live current matchday.
+  const cacheable =
+    matchday != null && currentMatchday != null && matchday < currentMatchday;
   const { data, loading, error } = useMemberPicks(
     isOpen ? userId : null,
     isOpen ? matchday : null,
+    cacheable,
   );
 
   const targetName = data?.target?.display_name || displayName || "Player";
@@ -181,8 +186,40 @@ export default function MemberPicksModal({
       </p>
     );
   } else {
+    const totals = data.matches.reduce(
+      (acc, m) => {
+        const fullTime = isMatchFinished(m.status) ? m.score?.fullTime : null;
+        const mine = scorePick(m.me, fullTime);
+        const theirs = scorePick(m.them, fullTime);
+        if (mine != null) acc.me += mine;
+        if (theirs != null) acc.them += theirs;
+        return acc;
+      },
+      { me: 0, them: 0 },
+    );
+
     body = (
       <div className="space-y-3">
+        <div className="rounded-lg border border-border bg-muted/40 p-3">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground text-center">
+            Matchday {data.matchday} total
+          </p>
+          <div className="mt-1.5 grid grid-cols-2 gap-2 text-center">
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                You
+              </p>
+              <p className="text-lg font-bold text-primary">{totals.me}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">
+                {targetName}
+              </p>
+              <p className="text-lg font-bold text-primary">{totals.them}</p>
+            </div>
+          </div>
+        </div>
+
         {data.matches.map((match) => (
           <MatchRow key={match.id} match={match} targetName={targetName} />
         ))}

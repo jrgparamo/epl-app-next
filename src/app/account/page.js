@@ -204,7 +204,7 @@ export default function AccountPage() {
                       Correct Predictions
                     </label>
                     <InfoHint label="About correct predictions">
-                      Correct picks out of matches played so far this season.
+                      Correct picks out of finished matches this season.
                     </InfoHint>
                   </div>
                   <div className="text-lg text-[#00c851]">

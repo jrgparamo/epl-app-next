@@ -13,7 +13,10 @@ Covers the laundry‑list item: **"Add an easier way to see members choices."**
   no PII (no email).
 - **Locked matches:** the fixture row is still shown with a "locked until
   kickoff" placeholder instead of the score.
-- **Current matchday only.** A matchday selector is out of scope (future work).
+- **Matchday picker:** a `WeekSelector` on the standings view lets you choose
+  which matchday to compare (up to and including the current one). The picker
+  scopes the modal only — the leaderboard stays a season‑total ranking.
+  TODO: investigate changing the ranking based on the selected matchday
 
 ## Data facts
 
@@ -54,22 +57,43 @@ Cost: 1 DB query + 1 network call per modal open; match data from cache.
 
 ### Hook — `src/hooks/useMemberPicks.js`
 
-`useMemberPicks(userId, matchday)` → `{ data, loading, error }`. Fetches on open,
-skips when `userId`/`matchday` missing, cancels stale requests.
+`useMemberPicks(userId, matchday, cacheable)` → `{ data, loading, error }`.
+Fetches on open, skips when `userId`/`matchday` missing, cancels stale requests.
+When `cacheable` is true, responses are memoized in a module‑level cache keyed
+`userId:matchday` so reopening the same combo makes no request. The modal marks
+only **past** matchdays cacheable (`matchday < currentMatchday`); the current
+matchday changes live (locks, results) and is always refetched.
 
 ### Component — `src/app/components/MemberPicksModal.js`
 
-`Sheet`/`Dialog` (mobile/desktop) titled "You vs {name}". One block per fixture:
-home/away logos + short names, the final result if `FINISHED`, then two columns —
-mine and theirs — each showing the scoreline, a lock placeholder, or a dash, plus
-a points badge (0/1/3) when the match is finished. Loading / error / empty states.
+`Sheet`/`Dialog` (mobile/desktop) titled "You vs {name}". A header shows the
+selected matchday's running total for **both** sides (You and the tapped user),
+summed from each side's per‑match points. One block per fixture: home/away logos +
+short names, the final result if `FINISHED`, then two columns — mine and theirs —
+each showing the scoreline, a lock placeholder, or a dash, plus a points badge
+(0/1/3) when the match is finished. Loading / error / empty states.
+
+### Matchday picker — standings view
+
+- Reuses the existing `WeekSelector` component (same as the matches view).
+- Matchdays up to and including the current one are listed:
+  `totalWeeks = currentMatchday`, derived purely from the `currentMatchday`
+  integer already loaded on the page — no season‑wide fetch. Defaults to the
+  current matchday. In‑progress fixtures stay locked until kickoff (the compare
+  endpoint withholds their scores), so the current matchday is safe to include.
+- `currentMatchday` comes from the client‑cached `getCurrentMatchday()`
+  (`src/lib/api.js`), shared with the matches view, so it is usually a cache hit
+  with no new request.
+- The picker sits above the leaderboard and applies to both the Global and League
+  tabs; its selection is passed to `MemberPicksModal` as `matchday`.
 
 ### Wire‑up
 
 - `GlobalLeaderboard.js` and `LeagueLeaderboard.js`: rows become clickable
   (keyboard accessible) and call `onUserSelect({ user_id, display_name })`.
-- `leaderboard/page.js`: holds `selectedMember` + `currentMatchday`, passes
-  `onUserSelect` to both leaderboards, renders a single `MemberPicksModal`.
+- `leaderboard/page.js`: holds `selectedMember`, `currentMatchday`, and
+  `selectedMatchday`; renders the `WeekSelector` and a single `MemberPicksModal`
+  scoped to the selected matchday.
 
 ## Files
 
@@ -85,21 +109,25 @@ Modify:
 - `src/app/api/matches/route.js`
 - `src/app/components/GlobalLeaderboard.js`
 - `src/app/components/LeagueLeaderboard.js`
-- `src/app/leaderboard/page.js`
+- `src/app/leaderboard/page.js` (adds the `WeekSelector` matchday picker)
 
 ## Verification
 
 - Tap a row on both leaderboards → modal opens; pre‑kickoff matches show locked;
   started/finished show the pick, result, and points; mobile = bottom sheet,
   desktop = dialog; closes on outside/esc.
-- Network: exactly one `/api/predictions/compare` call per open; no duplicate
-  football‑data call (cache shared with `/api/matches`).
+- The picker lists matchdays up to and including the current one and selecting
+  one scopes the modal; the header total for each side matches the sum of
+  per‑match points.
+- Network: selecting a matchday fires no request; opening the modal fires exactly
+  one `/api/predictions/compare`; reopening the same user for a **past** matchday
+  fires none (the current matchday always refetches); no duplicate football‑data
+  call (cache shared with `/api/matches`).
 - Security: endpoint returns 401 unauthenticated; pre‑kickoff match row carries
   `{ locked: true }` with no scores; no `email` anywhere in the payload.
 - `npm run lint` and editor diagnostics clean.
 
 ## Out of scope
 
-- Matchday selector / past matchdays.
 - Changes to existing prediction edit/lock behavior.
 - Server‑side points recompute (badge reuses the existing scoring rule client‑side).
