@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "../components/Header";
 import BottomNavigation from "../components/BottomNavigation";
+import LeagueManager from "../components/LeagueManager";
 import { useAuth } from "../components/AuthProvider";
 import { usePoints } from "../components/PointsProvider";
 import { InfoHint } from "@/components/ui/info-hint";
@@ -280,6 +281,8 @@ export default function AccountPage() {
               </div>
             )}
           </div>
+
+          <LeagueManager />
         </div>
       </main>
 

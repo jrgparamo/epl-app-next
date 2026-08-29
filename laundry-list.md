@@ -18,10 +18,9 @@
 - [ ] Fix spacing on sign in modal and data fetch on tap
 - [ ] Address ui FOR scrollbars
 - [ ] Clean up db and /docs dir among other legacy files.
-- [ ] Add click on season total for breakdown
 
 - [ ] On load scroll to the next match
-- [ ] ON matches view on touch of match card show current league users picks
+
 - [ ] Cron jobs calculates all finished matches - can we just limit to all finished within the matchday?
 
 - [ ] Fix this [auth][warn][experimental-webauthn] Read more: https://warnings.authjs.dev
@@ -40,3 +39,5 @@
       per-user `predicted_matches` now stored from the predictions table)
 - [x] Show live score with blinking live chip
 - [x] Add an easier way to see members choices
+- [x] Add click on season total for breakdown- not needed using leaderboards
+- [x] ON matches view on touch of match card show current league users picks

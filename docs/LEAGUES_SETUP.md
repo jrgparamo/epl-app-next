@@ -29,20 +29,21 @@ After running the migration, you can test the league system:
    ```
 
 2. **Test League Creation**:
-
-   - Go to `/leaderboard` page
-   - Switch to "League Leaderboards" tab
-   - Click "Create League"
+   - Go to the `/account` page
+   - In the "Your Leagues" section, click "Create"
    - Fill in league name and create
 
 3. **Test League Joining**:
-
    - Use another account or share the join code
-   - Click "Join League"
+   - On the `/account` page, click "Join"
    - Enter the 6-character code
 
-4. **Test QR Code Sharing**:
-   - As a league creator, click the "QR" button
+4. **Test League Selection**:
+   - Go to `/leaderboard` and switch to the "League Leaderboards" tab
+   - Select a joined league to view its standings
+
+5. **Test QR Code Sharing**:
+   - As a league creator, click the "QR" button (Account or League Leaderboards tab)
    - Verify QR code modal opens
    - Test copy/share functionality
 
