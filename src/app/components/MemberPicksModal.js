@@ -32,7 +32,7 @@ function PickCell({ label, pick, fullTime, highlight }) {
       </span>
     );
   } else if (pick) {
-    value = `${pick.home_score}–${pick.away_score}`;
+    value = `${pick.home_score} – ${pick.away_score}`;
   } else {
     value = <span className="text-muted-foreground">No pick</span>;
   }
@@ -66,7 +66,7 @@ function MatchRow({ match, targetName }) {
         </span>
         {finished && fullTime?.home != null && (
           <span className="font-medium text-foreground">
-            FT {fullTime.home}–{fullTime.away}
+            FT {fullTime.home} – {fullTime.away}
           </span>
         )}
       </div>
