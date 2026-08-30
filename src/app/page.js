@@ -158,6 +158,8 @@ export default function Home() {
             matches={matches}
             scorePredictions={scorePredictions}
             onScorePrediction={handleScorePrediction}
+            matchday={currentWeek}
+            currentMatchday={currentMatchday}
           />
         )}
 

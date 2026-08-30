@@ -65,6 +65,20 @@ The league system allows users to create and join private groups to compete with
 - Includes league info and member rankings
 - Requires league membership for access
 
+### `/api/predictions/league-picks` (GET)
+
+- Query param: `matchday`
+- Returns, per match in that matchday, the score predictions of everyone who shares
+  a league with the caller (union across **all** the caller's leagues, deduped by user)
+- **Anti-copy:** picks for a match that has not kicked off are withheld server-side
+  (`locked: true`, empty `picks`). Only started/finished matches expose picks.
+- Response shape: `{ hasLeague, matchday, matches: [{ id, homeTeam, awayTeam, utcDate,
+status, score.fullTime, started, locked, picks: [{ user_id, display_name, home_score,
+away_score, isCurrentUser }] }] }`. When the caller is in no league, `hasLeague` is
+  `false` and `matches` is empty.
+- Picks are sorted current-user-first, then (for finished matches) by points earned, then
+  alphabetically. Requires authentication.
+
 ## Security
 
 ### Row Level Security (RLS)
@@ -105,6 +119,21 @@ The league system allows users to create and join private groups to compete with
 - Generates QR codes for easy mobile sharing
 - Provides multiple sharing options (native share, copy code)
 - External QR code API for simplicity
+
+### `LeagueMatchPicksModal`
+
+- Opens when a user taps/clicks a **live or finished** match card on the matches view
+  (upcoming cards keep their score-entry buttons and are not tappable)
+- Lists every leaguemate's prediction for that match, current user first, with a points
+  badge once the match is finished; members who never predicted show "No pick"
+- Fetches a whole matchday once via `useLeaguePicks` and reuses it across every card
+  tapped in that matchday. Past matchdays are cached; the last good payload is retained so
+  an offline reopen falls back to stale data instead of failing
+- If the user belongs to no league, the modal shows a "Join a league" prompt linking to
+  the Account tab (mirrors the `LeagueSelector` empty state)
+- Shares presentation (`scorePick`, `PointsBadge`, `TeamLogo`) with `MemberPicksModal` via
+  [`src/lib/pick-scoring.js`](../src/lib/pick-scoring.js) and
+  [`src/app/components/PickVisuals.js`](../src/app/components/PickVisuals.js)
 
 ## Usage Flow
 
