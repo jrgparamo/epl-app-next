@@ -82,6 +82,42 @@ export async function GET() {
 - `canActAsUser(user, targetUserId)` — true when `user` can act on records
   belonging to `targetUserId` (self OR effective admin).
 
+### Admin authorization tiers
+
+There are **two** admin tiers and they intentionally grant different powers.
+Keep the distinction in mind when adding admin-gated routes.
+
+- **Global admin** — `User.isAdmin === true` (a column on the user row, carried
+  in the session). Enforced by `requireAdmin()`.
+- **League admin ("effective admin")** — `isAdmin` on **at least one** league
+  (`LeagueMember.isAdmin`). A user with no global flag but who administers any
+  league counts as an effective admin. Enforced by `isEffectiveAdmin()` and,
+  when acting on another user, `canActAsUser()`.
+
+`isEffectiveAdmin(user)` = global admin **OR** league admin on ≥1 league.
+
+| Capability                                      | Guard                                      | Global | League admin | Regular user |
+| ----------------------------------------------- | ------------------------------------------ | :----: | :----------: | :----------: |
+| See the **Admin** nav tab                       | client `user.isAdmin` (global only)        |   ✅   |      ❌      |      ❌      |
+| Open the `/admin` panel                         | `/api/admin/check` → `isEffectiveAdmin`    |   ✅   |      ✅      |   ❌ (403)   |
+| List all users                                  | `/api/admin/users` → `isEffectiveAdmin`    |   ✅   |      ✅      |      ❌      |
+| View / edit / delete **any** user's predictions | `canActAsUser` → `isEffectiveAdmin`        |   ✅   |      ✅      |  self only   |
+| Change **match final scores**                   | `/api/admin/match-result` → `requireAdmin` |   ✅   |   ❌ (403)   |      ❌      |
+
+Two consequences worth calling out explicitly:
+
+1. **League admins reach the panel by URL, not the nav.** The bottom-nav Admin
+   tab (`src/app/components/BottomNavigation.js`) is gated on the **global**
+   session flag `user.isAdmin`, because league-admin status is computed
+   server-side and is not part of the session object. A league admin therefore
+   sees no tab but can open `/admin` directly.
+2. **Prediction editing by an effective admin is unscoped (system-wide).**
+   `canActAsUser` lets any effective admin view/upsert/delete the predictions of
+   **any** user — it does **not** verify that the target user belongs to a
+   league the admin administers. This is intentional current behavior. Match
+   **final scores** are the one admin action league admins cannot perform — that
+   is global-admin only via `requireAdmin()`.
+
 ## Client-side usage
 
 Any client component can read the session via `useAuth()`:

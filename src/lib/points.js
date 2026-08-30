@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { snapshotFinishedMatches } from "@/lib/match-results";
 
 /**
  * Calculate and persist points for a single match.
@@ -341,6 +342,10 @@ export async function refreshRecentMatchPoints({
       console.error(`Lazy points refresh: match ${match.id} failed:`, error);
     }
   }
+
+  // Snapshot final results into Prisma (source of truth); reuses the fetch
+  // above, so no extra football-data request. Manual rows are preserved.
+  await snapshotFinishedMatches(matches);
 
   await prisma.cronLog.create({
     data: {
