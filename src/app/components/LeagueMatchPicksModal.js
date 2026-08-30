@@ -42,7 +42,7 @@ function MemberPickRow({ pick, fullTime }) {
       <div className="flex items-center gap-2 shrink-0">
         {hasPick ? (
           <span className="text-sm font-semibold tabular-nums">
-            {pick.home_score}–{pick.away_score}
+            {pick.home_score} – {pick.away_score}
           </span>
         ) : (
           <span className="text-xs text-muted-foreground">No pick</span>
@@ -85,7 +85,7 @@ export default function LeagueMatchPicksModal({
         <span className="truncate max-w-[100px] text-right">{homeShort}</span>
         {finished && fullTime?.home != null ? (
           <span className="font-bold tabular-nums px-1">
-            {fullTime.home}–{fullTime.away}
+            {fullTime.home} – {fullTime.away}
           </span>
         ) : (
           <span className="text-xs text-muted-foreground px-1">v</span>
