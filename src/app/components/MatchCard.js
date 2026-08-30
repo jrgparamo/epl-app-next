@@ -4,12 +4,14 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
 import ScoreModal from "./ScoreModal";
+import LeagueMatchPicksModal from "./LeagueMatchPicksModal";
 import { cn } from "@/lib/utils";
 import {
   getTeamLogo,
   getMatchStatusText,
   getScoreDisplay,
   isMatchFinished,
+  isMatchLive,
   hasMatchStarted,
 } from "../../lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -67,6 +69,8 @@ export default function MatchCard({
   match,
   scorePrediction,
   onScorePrediction,
+  matchday,
+  currentMatchday,
 }) {
   const { user } = useAuth();
   const isAuthenticated = !!user;
@@ -75,6 +79,7 @@ export default function MatchCard({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTeam, setModalTeam] = useState(null);
   const [modalTeamType, setModalTeamType] = useState(null);
+  const [picksOpen, setPicksOpen] = useState(false);
 
   useEffect(() => {
     if (scorePrediction) {
@@ -130,10 +135,34 @@ export default function MatchCard({
   const homeShort = match.homeTeam.shortName || match.homeTeam.name;
   const awayShort = match.awayTeam.shortName || match.awayTeam.name;
 
+  // Tap a live/finished card to see leaguemates' picks. Upcoming cards have
+  // score-entry buttons, so no card-level tap there.
+  const canViewPicks =
+    isAuthenticated && (isMatchLive(match.status) || matchFinished);
+
   return (
     <Card
+      onClick={canViewPicks ? () => setPicksOpen(true) : undefined}
+      onKeyDown={
+        canViewPicks
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setPicksOpen(true);
+              }
+            }
+          : undefined
+      }
+      role={canViewPicks ? "button" : undefined}
+      tabIndex={canViewPicks ? 0 : undefined}
+      aria-label={
+        canViewPicks
+          ? `View league picks for ${homeShort} vs ${awayShort}`
+          : undefined
+      }
       className={cn(
         "border transition-colors",
+        canViewPicks && "cursor-pointer hover:border-primary/40",
         predictionResult === "exact" &&
           "border-prediction-correct bg-prediction-correct/10",
         predictionResult === "result" &&
@@ -334,6 +363,18 @@ export default function MatchCard({
         onScoreSelect={handleScoreSelect}
         matchInfo={match}
       />
+
+      {canViewPicks && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <LeagueMatchPicksModal
+            match={match}
+            matchday={matchday}
+            currentMatchday={currentMatchday}
+            isOpen={picksOpen}
+            onClose={() => setPicksOpen(false)}
+          />
+        </div>
+      )}
     </Card>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   Sheet,
   SheetContent,
@@ -13,71 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useMemberPicks } from "@/hooks/useMemberPicks";
-import {
-  getTeamLogo,
-  isMatchFinished,
-  formatMatchDate,
-  formatMatchTime,
-} from "@/lib/utils";
+import { isMatchFinished, formatMatchDate, formatMatchTime } from "@/lib/utils";
+import { scorePick } from "@/lib/pick-scoring";
+import { TeamLogo, PointsBadge } from "./PickVisuals";
 import { RiLockLine } from "@remixicon/react";
-
-// Scoring: exact score = 3, correct outcome = 1, otherwise 0.
-function scorePick(pick, fullTime) {
-  if (!pick || pick.locked) return null;
-  if (fullTime?.home == null || fullTime?.away == null) return null;
-  if (pick.home_score === fullTime.home && pick.away_score === fullTime.away) {
-    return 3;
-  }
-  const pickDiff = Math.sign(pick.home_score - pick.away_score);
-  const resultDiff = Math.sign(fullTime.home - fullTime.away);
-  return pickDiff === resultDiff ? 1 : 0;
-}
-
-function TeamLogo({ name }) {
-  return (
-    <div className="relative h-5 w-5 shrink-0">
-      <Image
-        src={getTeamLogo(name)}
-        alt={`${name} logo`}
-        fill
-        className="object-contain"
-        onError={(e) => {
-          e.target.src = "/team-logos/default.svg";
-        }}
-      />
-    </div>
-  );
-}
-
-function PointsBadge({ points }) {
-  if (points === null) return null;
-  if (points === 3) {
-    return (
-      <Badge className="text-[10px] px-1.5 py-0 h-4 bg-prediction-correct/20 text-prediction-correct border-prediction-correct/30 border">
-        +3
-      </Badge>
-    );
-  }
-  if (points === 1) {
-    return (
-      <Badge className="text-[10px] px-1.5 py-0 h-4 bg-yellow-500/20 text-yellow-400 border-yellow-500/30 border">
-        +1
-      </Badge>
-    );
-  }
-  return (
-    <Badge
-      variant="secondary"
-      className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground"
-    >
-      0
-    </Badge>
-  );
-}
 
 function PickCell({ label, pick, fullTime, highlight }) {
   const points = scorePick(pick, fullTime);

@@ -6,6 +6,8 @@ export default function MatchList({
   matches,
   scorePredictions,
   onScorePrediction,
+  matchday,
+  currentMatchday,
 }) {
   // Group matches by date
   const groupedMatches = matches.reduce((groups, match) => {
@@ -42,6 +44,8 @@ export default function MatchList({
                   match={match}
                   scorePrediction={scorePredictions[match.id]}
                   onScorePrediction={onScorePrediction}
+                  matchday={matchday}
+                  currentMatchday={currentMatchday}
                 />
               ))}
             </div>
