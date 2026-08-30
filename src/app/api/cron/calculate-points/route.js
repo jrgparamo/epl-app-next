@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateMatchPoints } from "@/lib/points";
+import { snapshotFinishedMatches } from "@/lib/match-results";
 
 const FOOTBALL_DATA_BASE_URL = "https://api.football-data.org/v4";
 const PREMIER_LEAGUE_ID = 2021;
@@ -115,6 +116,10 @@ async function runCron(request) {
         });
       }
     }
+
+    // Snapshot final results into Prisma (source of truth); reuses the fetch
+    // above, so no extra football-data request. Manual rows are preserved.
+    await snapshotFinishedMatches(finishedMatches);
 
     await prisma.cronLog.create({
       data: {
