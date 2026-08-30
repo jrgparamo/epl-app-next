@@ -1,4 +1,8 @@
 import apiCache from "@/lib/api-cache";
+import {
+  getCompleteMatchdayFromDb,
+  overlayMatchdayResults,
+} from "@/lib/match-results";
 
 const API_BASE_URL = "https://api.football-data.org/v4";
 const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
@@ -10,6 +14,11 @@ export async function fetchMatchesByMatchday(matchday, { status } = {}) {
   if (!API_KEY) {
     throw new Error("API key not configured");
   }
+
+  // Prisma is the source of truth for finished matches. When every fixture of a
+  // matchday is snapshotted, serve entirely from the DB and skip football-data.
+  const fromDb = await getCompleteMatchdayFromDb(matchday);
+  if (fromDb) return fromDb;
 
   const cacheKey = `matches-${matchday || status || "all"}`;
 
@@ -43,7 +52,7 @@ export async function fetchMatchesByMatchday(matchday, { status } = {}) {
     30 * 60 * 1000, // 30 minutes TTL
   );
 
-  return (
+  const matches =
     data.matches?.map((match) => ({
       id: match.id,
       homeTeam: {
@@ -63,6 +72,8 @@ export async function fetchMatchesByMatchday(matchday, { status } = {}) {
       matchday: match.matchday,
       score: match.score,
       venue: match.venue,
-    })) || []
-  );
+    })) || [];
+
+  // Overlay DB snapshots (DB wins) and learn the fixture count for this matchday.
+  return overlayMatchdayResults(matchday, matches);
 }
