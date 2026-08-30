@@ -156,7 +156,8 @@ export function hasMatchStarted(utcDate) {
  * Check if match is finished
  */
 export function isMatchFinished(status) {
-  return status === "FINISHED";
+  // AWARDED is a terminal status too (result set administratively, e.g. forfeit)
+  return status === "FINISHED" || status === "AWARDED";
 }
 
 /**
@@ -179,6 +180,7 @@ export function getMatchStatusText(status, utcDate) {
     case "PAUSED":
       return "HT"; // Half Time
     case "FINISHED":
+    case "AWARDED":
       return "FT"; // Full Time
     case "POSTPONED":
       return "PP"; // Postponed
@@ -199,7 +201,7 @@ export function getScoreDisplay(score, status) {
     return { home: "-", away: "-" };
   }
 
-  if (status === "FINISHED") {
+  if (status === "FINISHED" || status === "AWARDED") {
     return {
       home: score.fullTime.home ?? "-",
       away: score.fullTime.away ?? "-",

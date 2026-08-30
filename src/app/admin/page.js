@@ -8,6 +8,7 @@ import Header from "../components/Header";
 import BottomNavigation from "../components/BottomNavigation";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorDisplay } from "../components/ErrorDisplay";
+import { hasMatchStarted, isMatchFinished } from "@/lib/utils";
 
 export default function AdminPage() {
   return (
@@ -170,7 +171,7 @@ function AdminContent() {
     try {
       const response = await fetch(
         `/api/predictions?userId=${selectedUser}&matchId=${matchId}`,
-        { method: "DELETE", credentials: "same-origin" }
+        { method: "DELETE", credentials: "same-origin" },
       );
 
       if (!response.ok) throw new Error("Failed to delete prediction");
@@ -288,6 +289,12 @@ function AdminContent() {
             )}
           </div>
         </div>
+
+        {user?.isAdmin && (
+          <div className="mt-8">
+            <MatchResultsManager />
+          </div>
+        )}
       </div>
       <BottomNavigation
         activeTab="admin"
@@ -427,6 +434,173 @@ function UserPredictionsManager({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// Admin entry of final results. Prisma is the source of truth for finished
+// matches, so this fills the gap when the football-data API leaves a played
+// match stuck at TIMED with no score.
+function MatchResultsManager() {
+  const [matchday, setMatchday] = useState(1);
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [savingId, setSavingId] = useState(null);
+  const [message, setMessage] = useState(null);
+
+  const load = async (md) => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/matches?matchday=${md}`, {
+        credentials: "same-origin",
+      });
+      if (!res.ok) throw new Error("Failed to load matches");
+      const data = await res.json();
+      setMatches(data.matches || []);
+    } catch (err) {
+      setMessage(err.message);
+      setMatches([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load(matchday);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSave = async (match, home, away) => {
+    setSavingId(match.id);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/match-result", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          matchId: match.id,
+          matchday: match.matchday,
+          homeScore: parseInt(home),
+          awayScore: parseInt(away),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save result");
+      setMessage(
+        `Saved ${match.homeTeam.shortName} ${home}-${away} ${match.awayTeam.shortName} · ${data.pointsAwarded} pts awarded`,
+      );
+      await load(matchday);
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-6">
+      <h2 className="text-xl font-semibold mb-1">Match Results</h2>
+      <p className="text-sm text-gray-400 mb-4">
+        Enter or override a final score. Saved results are the source of truth
+        and recompute points immediately.
+      </p>
+
+      <div className="flex items-center space-x-2 mb-4">
+        <label className="text-sm text-gray-400">Matchday</label>
+        <input
+          type="number"
+          min="1"
+          max="38"
+          value={matchday}
+          onChange={(e) => setMatchday(Number(e.target.value))}
+          className="w-20 px-2 py-1 bg-gray-600 rounded text-center"
+        />
+        <button
+          onClick={() => load(matchday)}
+          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+        >
+          Load
+        </button>
+      </div>
+
+      {message && <div className="text-sm mb-4 text-yellow-300">{message}</div>}
+
+      {loading ? (
+        <div className="text-gray-400 text-sm">Loading…</div>
+      ) : (
+        <div className="space-y-3 max-h-[32rem] overflow-y-auto">
+          {matches.map((match) => (
+            <MatchResultRow
+              key={match.id}
+              match={match}
+              saving={savingId === match.id}
+              onSave={handleSave}
+            />
+          ))}
+          {matches.length === 0 && (
+            <div className="text-gray-500 text-sm">
+              No matches for this matchday.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchResultRow({ match, saving, onSave }) {
+  const finished = isMatchFinished(match.status);
+  const started = hasMatchStarted(match.utcDate);
+  const stuck = started && !finished;
+  const ft = match.score?.fullTime || {};
+  const [home, setHome] = useState(ft.home != null ? String(ft.home) : "");
+  const [away, setAway] = useState(ft.away != null ? String(ft.away) : "");
+  const canSave = home !== "" && away !== "" && !saving;
+
+  return (
+    <div
+      className={`bg-gray-700 rounded-lg p-4 flex items-center justify-between ${
+        stuck ? "ring-1 ring-yellow-500/60" : ""
+      }`}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="text-sm text-gray-400 mb-1">
+          {new Date(match.utcDate).toLocaleString()} ·{" "}
+          {finished ? "Finished" : stuck ? "Stuck — no result" : match.status}
+        </div>
+        <div className="font-medium truncate">
+          {match.homeTeam.shortName} vs {match.awayTeam.shortName}
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-2 shrink-0">
+        <input
+          type="number"
+          min="0"
+          value={home}
+          onChange={(e) => setHome(e.target.value)}
+          className="w-14 px-2 py-1 bg-gray-600 rounded text-center"
+          placeholder="H"
+        />
+        <span>-</span>
+        <input
+          type="number"
+          min="0"
+          value={away}
+          onChange={(e) => setAway(e.target.value)}
+          className="w-14 px-2 py-1 bg-gray-600 rounded text-center"
+          placeholder="A"
+        />
+        <button
+          disabled={!canSave}
+          onClick={() => onSave(match, home, away)}
+          className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded text-sm"
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
       </div>
     </div>
   );

@@ -206,3 +206,40 @@ model RateLimit {
   @@index([windowStart])
   @@map("rate_limits")
 }
+
+/// Source of truth for finished-match results. The football-data free tier
+/// sometimes leaves played matches stuck at TIMED with null scores, so results
+/// are snapshotted here: written once when a match is first seen FINISHED
+/// (source "api") or entered by an admin (source "manual"). Manual rows are
+/// never overwritten by the API. Reads overlay these onto live fixtures.
+model MatchResult {
+  matchId       String   @id
+  matchday      Int
+  utcDate       DateTime
+  homeTeamName  String
+  homeTeamShort String?
+  homeTeamTla   String?
+  awayTeamName  String
+  awayTeamShort String?
+  awayTeamTla   String?
+  homeScore     Int
+  awayScore     Int
+  status        String   @default("FINISHED")
+  source        String   @default("api")
+  finishedAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([matchday])
+  @@map("match_results")
+}
+
+/// Per-matchday fixture count learned from the last football-data fetch. Lets
+/// the read path treat a past matchday as complete (result rows == fixtureCount)
+/// and serve it entirely from Prisma with no football-data request.
+model MatchdayMeta {
+  matchday     Int      @id
+  fixtureCount Int
+  updatedAt    DateTime @updatedAt
+
+  @@map("matchday_meta")
+}

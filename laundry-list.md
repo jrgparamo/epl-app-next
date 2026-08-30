@@ -7,6 +7,9 @@
 - [ ] Is Prisma caching queries?
 
 - [ ] Instead of fetching all matches - could we store the finished matches with their results in the db?
+- [ ] optimize page load network request for comapring player points per match looks like it will be massive by week 38
+
+- [ ] matchday can be cached for longer
 
 ## DONE
 
