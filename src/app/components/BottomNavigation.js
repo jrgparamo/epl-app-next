@@ -29,7 +29,9 @@ const BottomNavigation = ({ activeTab = "matches", onTabChange }) => {
 
   // Seed from localStorage synchronously so the tab count is stable on first
   // paint. Falls back to false when no cache exists (true cold first visit).
-  const [isAdmin, setIsAdmin] = useState(() => readAdminCache(user?.id) ?? false);
+  const [isAdmin, setIsAdmin] = useState(
+    () => readAdminCache(user?.id) ?? false,
+  );
 
   useEffect(() => {
     if (loading) return;
@@ -47,7 +49,7 @@ const BottomNavigation = ({ activeTab = "matches", onTabChange }) => {
   const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[env(safe-area-inset-bottom)] pb-3">
+    <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[env(safe-area-inset-bottom)]">
       <nav className="bg-card/95 border border-border rounded-2xl shadow-lg backdrop-blur-sm max-w-md mx-auto">
         <div className="flex items-center justify-around py-2 px-2">
           {tabs.map(({ id, label, icon: Icon }) => {
@@ -60,13 +62,13 @@ const BottomNavigation = ({ activeTab = "matches", onTabChange }) => {
                   "flex flex-col items-center justify-center flex-1 min-w-0 gap-0.5 px-2 py-2 rounded-xl transition-all duration-200 touch-manipulation",
                   isActive
                     ? "bg-primary/15 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent",
                 )}
               >
                 <Icon
                   className={cn(
                     "w-5 h-5 shrink-0",
-                    isActive ? "text-primary" : ""
+                    isActive ? "text-primary" : "",
                   )}
                 />
                 <span className="text-[10px] font-medium truncate leading-tight">

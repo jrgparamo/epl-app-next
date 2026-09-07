@@ -27,6 +27,7 @@ export const metadata = {
 
 export const viewport = {
   themeColor: "#0c0a09",
+  viewportFit: "cover",
 };
 
 // Warmup cache on server start (production only)
