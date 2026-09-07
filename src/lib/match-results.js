@@ -12,8 +12,14 @@ import { prisma } from "@/lib/prisma";
 const RESULTS_TTL_MS = 60 * 1000;
 const resultsCache = new Map(); // matchday(number) -> { expiry, rowsByMatchId, fixtureCount }
 
+// Recent-form map derived from all snapshotted results; rebuilt on any write.
+const FORM_TTL_MS = 5 * 60 * 1000;
+const FORM_LIMIT = 5;
+let formCache = null; // { expiry, byKey: Map<string, string[]> }
+
 function invalidateMatchdayResults(matchday) {
   resultsCache.delete(Number(matchday));
+  formCache = null;
 }
 
 /**
@@ -135,6 +141,83 @@ export async function overlayMatchdayResults(matchday, apiMatches) {
       },
     };
   });
+}
+
+function resultLetter(forHome, homeScore, awayScore) {
+  if (homeScore === awayScore) return "D";
+  const homeWon = homeScore > awayScore;
+  return (forHome ? homeWon : !homeWon) ? "W" : "L";
+}
+
+/**
+ * Recent W/D/L form per team, derived from snapshotted finished matches. Keyed
+ * by both tla and full name (newest result last), cached in-process. Zero extra
+ * external calls — reads the same MatchResult rows the app already maintains.
+ */
+export async function getTeamFormMap({ limit = FORM_LIMIT } = {}) {
+  if (formCache && Date.now() < formCache.expiry) return formCache.byKey;
+
+  const rows = await prisma.matchResult.findMany({
+    orderBy: { utcDate: "asc" },
+    select: {
+      utcDate: true,
+      homeTeamName: true,
+      homeTeamTla: true,
+      awayTeamName: true,
+      awayTeamTla: true,
+      homeScore: true,
+      awayScore: true,
+    },
+  });
+
+  const teams = new Map(); // name -> { tla, letters: string[] } (date-ordered)
+  const push = (name, tla, letter) => {
+    if (!name) return;
+    let t = teams.get(name);
+    if (!t) {
+      t = { tla: tla || null, letters: [] };
+      teams.set(name, t);
+    }
+    if (!t.tla && tla) t.tla = tla;
+    t.letters.push(letter);
+  };
+
+  for (const r of rows) {
+    push(
+      r.homeTeamName,
+      r.homeTeamTla,
+      resultLetter(true, r.homeScore, r.awayScore),
+    );
+    push(
+      r.awayTeamName,
+      r.awayTeamTla,
+      resultLetter(false, r.homeScore, r.awayScore),
+    );
+  }
+
+  const byKey = new Map();
+  for (const [name, t] of teams) {
+    const recent = t.letters.slice(-limit);
+    byKey.set(name, recent);
+    if (t.tla) byKey.set(t.tla, recent);
+  }
+
+  formCache = { expiry: Date.now() + FORM_TTL_MS, byKey };
+  return byKey;
+}
+
+/**
+ * Look up a team's form array from the map built by getTeamFormMap. Tries tla
+ * first (most stable), then full name, then short name.
+ */
+export function formForTeam(formMap, team) {
+  if (!team || !formMap) return null;
+  return (
+    formMap.get(team.tla) ||
+    formMap.get(team.name) ||
+    formMap.get(team.shortName) ||
+    null
+  );
 }
 
 /**
