@@ -19,6 +19,14 @@ const geist = Geist({
 export const metadata = {
   title: "Top Picks - Football Predictions",
   description: "Make football predictions and compete with friends",
+  appleWebApp: {
+    title: "Top Picks",
+    statusBarStyle: "black",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0c0a09",
 };
 
 // Warmup cache on server start (production only)
