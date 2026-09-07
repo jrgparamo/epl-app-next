@@ -2,6 +2,8 @@ import apiCache from "@/lib/api-cache";
 import {
   getCompleteMatchdayFromDb,
   overlayMatchdayResults,
+  getTeamFormMap,
+  formForTeam,
 } from "@/lib/match-results";
 
 const API_BASE_URL = "https://api.football-data.org/v4";
@@ -75,5 +77,14 @@ export async function fetchMatchesByMatchday(matchday, { status } = {}) {
     })) || [];
 
   // Overlay DB snapshots (DB wins) and learn the fixture count for this matchday.
-  return overlayMatchdayResults(matchday, matches);
+  const overlaid = await overlayMatchdayResults(matchday, matches);
+
+  // Attach recent W/D/L form (from snapshotted results) so scheduled cards can
+  // show it without any extra network request.
+  const formMap = await getTeamFormMap();
+  return overlaid.map((m) => ({
+    ...m,
+    homeTeam: { ...m.homeTeam, form: formForTeam(formMap, m.homeTeam) },
+    awayTeam: { ...m.awayTeam, form: formForTeam(formMap, m.awayTeam) },
+  }));
 }

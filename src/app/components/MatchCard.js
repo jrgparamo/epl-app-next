@@ -37,6 +37,37 @@ function TeamLogo({ name, size = 40 }) {
   );
 }
 
+const FORM_LABEL = { W: "Win", D: "Draw", L: "Loss" };
+
+// Recent results oldest→newest; shown only on scheduled cards to aid picks.
+function FormChips({ form }) {
+  if (!form || form.length === 0) return null;
+  return (
+    <div
+      className="flex items-center gap-0.5"
+      role="img"
+      aria-label={`Recent form, oldest to newest: ${form
+        .map((r) => FORM_LABEL[r])
+        .join(", ")}`}
+    >
+      {form.map((r, i) => (
+        <span
+          key={i}
+          title={FORM_LABEL[r]}
+          className={cn(
+            "flex h-3.5 w-3.5 items-center justify-center rounded-[3px] text-[8px] font-bold leading-none",
+            r === "W" && "bg-prediction-correct/15 text-prediction-correct",
+            r === "L" && "bg-prediction-wrong/15 text-prediction-wrong",
+            r === "D" && "bg-muted text-muted-foreground",
+          )}
+        >
+          {r}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function getPredictionResult(match, scorePrediction) {
   if (!isMatchFinished(match.status) || !scorePrediction) return null;
   if (scorePrediction.home === null || scorePrediction.away === null)
@@ -222,6 +253,7 @@ export default function MatchCard({
               <span className="text-sm font-semibold text-center truncate w-full">
                 {homeShort}
               </span>
+              {!matchStarted && <FormChips form={match.homeTeam.form} />}
             </div>
             <span className="text-muted-foreground font-medium text-sm shrink-0">
               vs
@@ -231,6 +263,7 @@ export default function MatchCard({
               <span className="text-sm font-semibold text-center truncate w-full">
                 {awayShort}
               </span>
+              {!matchStarted && <FormChips form={match.awayTeam.form} />}
             </div>
           </div>
         )}
