@@ -51,8 +51,10 @@ export default function WeekSelector({
                 className={cn(
                   "shrink-0 h-9 min-w-[3rem] rounded-full text-xs font-medium transition-all touch-manipulation",
                   isSelected && "shadow-md",
-                  !isSelected && isCurrent && "border-primary text-primary font-semibold",
-                  !isSelected && isPast && "opacity-50"
+                  !isSelected &&
+                    isCurrent &&
+                    "border-primary text-primary font-semibold",
+                  !isSelected && isPast && "opacity-50",
                 )}
               >
                 {isPast && !isSelected ? `${week}` : week}
@@ -63,7 +65,7 @@ export default function WeekSelector({
             );
           })}
         </div>
-        <ScrollBar orientation="horizontal" className="h-1.5" />
+        {/* <ScrollBar orientation="horizontal" className="h-1.5" /> */}
       </ScrollArea>
     </div>
   );
